@@ -7,6 +7,8 @@ PKG_CHECK_MODULES(PROFILER, mono glib-2.0)
 
 AC_PATH_PROG(MCS, mcs)
 AC_PATH_PROG(MONO, mono)
+pkglibdir=$prefix/lib/heapshot
+AC_SUBST(pkglibdir)
 
 AC_OUTPUT([
 Makefile
