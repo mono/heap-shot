@@ -1,1 +1,109 @@
-TODO
+HeapShot
+=========
+
+	HeapShot is a profiler to explore live objects in the heap. 
+
+	HeapShot can either explore one snapshot of memory at a
+	point, or it can be used to compare the objects between two separate
+	points in time.
+
+Enabling HeapShot
+=================
+
+	To use HeapShot, you must run the application to be examined
+	with the following command line:
+
+		mono --profile=heap-shot MyProgram.exe
+
+	This activates the `heap-shot' profiler for your application.
+
+	HeapShot works by taking snapshots of the heap in your
+	application on demand.  There are two tools used to explore
+	the heap: heap-shot (a command line tool) and heap-shot-gui (a
+	graphical user interface for HeapShot).
+
+Using the GUI for HeapShot
+==========================
+
+	Once your program has been started with HeapShot using the
+	command line option, you can start up heap-shot-gui, this is a
+	program that allows you to explore your application live.
+
+	First click on "Memory Snapshot", and select the process that
+	you want to explore from the list of processes.
+
+	This will trigger Mono to take a snapshot of all the live
+	objects in your application.
+
+	Once you take the snapshot, select it from the right-side
+	list, this will update the Summary view with information about
+	the number of objects allocated and the memory consumed:
+
+		Name: outfile_0.omap
+		Object count: 1,043
+		Total memory: 64,570 bytes
+
+	Click on the tab that says "All Objects" to explore the
+	objects that have been created.   
+
+	Here you can quickly inspect:
+
+		The types that are being created.
+		Number of instance of the objects created (default sorting)
+		Memory used by these instances.
+		Average size of these objects.
+
+	There are two possible views:
+
+		* Viewing types and which objects they created.
+
+		* Viewing objects that reference the current type.
+
+	The default mode is to view the types and the object that
+	instances of that type have created.  To view the objects that
+	keep references to a given type, click on:
+
+		"[ ] Inverse references"
+
+	At the bottom of the screen. 
+
+	For each type show, you can break down the objects that are
+	referenced by this particular object at any given time, for
+	example, to view the objects that were allocated by
+	System.Globalization.CultureInfo click on the triangle next to
+	it, and you will get a list of objects that looks like this:
+
+					    Instances | Memory Size | Avg Size
+	System.Globalization.CultureInfo            4 |         464 |      116
+	   string                                  29 |       1,170 |       40
+	   System.Globalization.CompareInfo         2 |          72 |       36
+	   System.Globalization.TextInfo            2 |         120 |       60
+	   System.Globalization.DateTimeFormatInfo  2 |         352 |      176
+	   System.Globalization.NumberFormatInfo    1 |         152 |      152
+
+	Double-clicking on a type would open a new tab that allows you
+	to explore that type on its own.
+
+	You can also use the "Filter" function at the bottom to limit
+	the display of types to a given type name. 
+
+Using the Command Line HeapShot
+===============================
+
+	To use the command line version of HeapShot, you must first
+	get an object map.  This can be done either with the GUI by
+	clicking on "Memory Snapshot" or you can send the PROF signal
+	to a Mono process that has been started with the
+	--profile=heap-shot command line option:
+
+		mono --profile=heap-shot MyProgram.exe
+
+	And on a separate window you type:
+
+		kill -PROF <pid-of-the-process>
+
+	Once you have the file, you can process it with:
+
+		heap-prof outfile_0.omap
+
+
