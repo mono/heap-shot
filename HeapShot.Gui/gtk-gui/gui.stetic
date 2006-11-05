@@ -1,0 +1,231 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<stetic-interface>
+  <widget class="Gtk.Window" id="MainWindow" design-size="711 466">
+    <action-group name="Default">
+      <action id="File">
+        <property name="ShortLabel">File</property>
+        <property name="Label">File</property>
+        <property name="Type">Action</property>
+      </action>
+      <action id="open">
+        <property name="IsImportant">True</property>
+        <property name="Label" />
+        <property name="Type">Action</property>
+        <property name="StockId">gtk-open</property>
+        <signal name="Activated" handler="OnOpenActivated" />
+      </action>
+      <action id="quit">
+        <property name="IsImportant">True</property>
+        <property name="Label" />
+        <property name="Type">Action</property>
+        <property name="StockId">gtk-quit</property>
+        <signal name="Activated" handler="OnQuitActivated" />
+      </action>
+      <action id="MemorySnapshot">
+        <property name="ShortLabel">Memory snapshot</property>
+        <property name="IsImportant">True</property>
+        <property name="Label">Memory snapshot</property>
+        <property name="Type">Action</property>
+        <signal name="Activated" handler="OnMemorySnapshotActivated" />
+      </action>
+      <action id="new">
+        <property name="IsImportant">True</property>
+        <property name="Label" />
+        <property name="Type">Action</property>
+        <property name="StockId">gtk-new</property>
+        <signal name="Activated" handler="OnNewActivated" />
+      </action>
+    </action-group>
+    <property name="Title" translatable="yes">MainWindow</property>
+    <property name="WindowPosition">CenterOnParent</property>
+    <property name="Events">0</property>
+    <property name="MemberName" />
+    <signal name="DeleteEvent" handler="OnDeleteEvent" />
+    <child>
+      <widget class="Gtk.VBox" id="vbox1">
+        <property name="Spacing">6</property>
+        <property name="Events">0</property>
+        <property name="MemberName" />
+        <child>
+          <widget class="Gtk.Toolbar" id="toolbar1">
+            <property name="ShowArrow">False</property>
+            <property name="Tooltips">True</property>
+            <property name="ButtonStyle">BothHoriz</property>
+            <property name="IconSize">LargeToolbar</property>
+            <property name="Events">0</property>
+            <property name="MemberName" />
+            <node name="toolbar1" type="Menubar">
+              <node type="Toolitem" action="new" />
+              <node type="Toolitem" action="open" />
+              <node type="Toolitem" action="quit" />
+              <node type="Separator" />
+              <node type="Toolitem" action="MemorySnapshot" />
+            </node>
+          </widget>
+          <packing>
+            <property name="Position">0</property>
+            <property name="AutoSize">True</property>
+            <property name="Expand">False</property>
+            <property name="Fill">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="HeapShot.Gui.Widgets.ObjectMapViewer" id="viewer">
+            <property name="Events">ButtonPressMask</property>
+            <property name="MemberName">viewer</property>
+          </widget>
+          <packing>
+            <property name="Position">1</property>
+            <property name="AutoSize">True</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="Gtk.Statusbar" id="statusbar1">
+            <property name="Events">0</property>
+            <property name="MemberName" />
+            <child>
+              <placeholder />
+            </child>
+            <child>
+              <placeholder />
+            </child>
+          </widget>
+          <packing>
+            <property name="Position">2</property>
+            <property name="AutoSize">True</property>
+            <property name="Expand">False</property>
+            <property name="Fill">False</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="Gtk.Dialog" id="HeapShot.Gui.SelectProcessDialog" design-size="531 425">
+    <property name="Title" translatable="yes">Select process</property>
+    <property name="Buttons">2</property>
+    <property name="HelpButton">False</property>
+    <property name="WindowPosition">CenterOnParent</property>
+    <property name="HasSeparator">False</property>
+    <property name="Events">ButtonPressMask</property>
+    <property name="MemberName" />
+    <signal name="Response" handler="OnResponse" />
+    <child internal-child="VBox">
+      <widget class="Gtk.VBox" id="dialog_VBox">
+        <property name="BorderWidth">2</property>
+        <property name="Events">ButtonPressMask</property>
+        <property name="MemberName" />
+        <child>
+          <widget class="Gtk.VBox" id="vbox1">
+            <property name="Spacing">6</property>
+            <property name="BorderWidth">12</property>
+            <property name="Events">0</property>
+            <property name="MemberName" />
+            <child>
+              <widget class="Gtk.Label" id="label1">
+                <property name="LabelProp">Select a process:</property>
+                <property name="Xalign">0</property>
+                <property name="Events">0</property>
+                <property name="MemberName" />
+              </widget>
+              <packing>
+                <property name="Position">0</property>
+                <property name="AutoSize">True</property>
+                <property name="Expand">False</property>
+                <property name="Fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="Gtk.ScrolledWindow" id="scrolledwindow1">
+                <property name="VscrollbarPolicy">Automatic</property>
+                <property name="HscrollbarPolicy">Automatic</property>
+                <property name="ShadowType">In</property>
+                <property name="CanFocus">True</property>
+                <property name="Events">0</property>
+                <property name="MemberName" />
+                <child>
+                  <widget class="Gtk.TreeView" id="list">
+                    <property name="CanFocus">True</property>
+                    <property name="Events">0</property>
+                    <property name="MemberName">list</property>
+                  </widget>
+                </child>
+              </widget>
+              <packing>
+                <property name="Position">1</property>
+                <property name="AutoSize">True</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="Gtk.Label" id="label2">
+                <property name="LabelProp" translatable="yes" context="yes" comments="">|&lt;b&gt;Warning:&lt;/b&gt; Memory snapshots can only be taken from mono processes started with the option "--profile=heap-shot". If you select a process which was not started using this option, the process will be stopped.</property>
+                <property name="UseMarkup">True</property>
+                <property name="Wrap">True</property>
+                <property name="Xalign">0</property>
+                <property name="Events">0</property>
+                <property name="MemberName" />
+                <property name="WidthRequest">492</property>
+              </widget>
+              <packing>
+                <property name="Position">2</property>
+                <property name="AutoSize">True</property>
+                <property name="Expand">False</property>
+                <property name="Fill">False</property>
+              </packing>
+            </child>
+          </widget>
+          <packing>
+            <property name="Position">0</property>
+            <property name="AutoSize">True</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+    <child internal-child="ActionArea">
+      <widget class="Gtk.HButtonBox" id="HeapShot.Gui.SelectProcessDialog_ActionArea">
+        <property name="Size">2</property>
+        <property name="LayoutStyle">End</property>
+        <property name="Spacing">10</property>
+        <property name="BorderWidth">5</property>
+        <property name="Events">ButtonPressMask</property>
+        <property name="MemberName" />
+        <child>
+          <widget class="Gtk.Button" id="button1">
+            <property name="UseStock">True</property>
+            <property name="Type">StockItem</property>
+            <property name="StockId">gtk-cancel</property>
+            <property name="IsDialogButton">True</property>
+            <property name="ResponseId">-6</property>
+            <property name="CanFocus">True</property>
+            <property name="Events">0</property>
+            <property name="MemberName" />
+            <property name="CanDefault">True</property>
+            <property name="label">gtk-cancel</property>
+          </widget>
+          <packing>
+            <property name="Expand">False</property>
+            <property name="Fill">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="Gtk.Button" id="button8">
+            <property name="UseStock">True</property>
+            <property name="Type">StockItem</property>
+            <property name="StockId">gtk-ok</property>
+            <property name="IsDialogButton">True</property>
+            <property name="ResponseId">-5</property>
+            <property name="CanFocus">True</property>
+            <property name="Events">0</property>
+            <property name="MemberName" />
+            <property name="CanDefault">True</property>
+            <property name="label">gtk-ok</property>
+          </widget>
+          <packing>
+            <property name="Position">1</property>
+            <property name="Expand">False</property>
+            <property name="Fill">False</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+</stetic-interface>

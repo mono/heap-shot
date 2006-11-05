@@ -1,0 +1,24 @@
+<objects>
+  <object type="HeapShot.Gui.Widgets.ReferenceTreeViewer" palette-category="widget" allow-children="false">
+    <itemgroups>
+      <itemgroup ref="Gtk.Widget" />
+      <itemgroup label="ReferenceTreeViewer Properties">
+        <property name="InverseReferences" />
+      </itemgroup>
+    </itemgroups>
+    <signals>
+      <itemgroup ref="Gtk.Widget" />
+      <itemgroup label="ReferenceTreeViewer Signals">
+        <signal name="TypeActivated" />
+      </itemgroup>
+    </signals>
+  </object>
+  <object type="HeapShot.Gui.Widgets.ObjectMapViewer" palette-category="widget" allow-children="false">
+    <itemgroups>
+      <itemgroup ref="Gtk.Widget" />
+    </itemgroups>
+    <signals>
+      <itemgroup ref="Gtk.Widget" />
+    </signals>
+  </object>
+</objects>

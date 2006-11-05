@@ -1,0 +1,22 @@
+AC_INIT(profiler/heap-shot.c)
+AM_INIT_AUTOMAKE(heap-shot, 0.1)
+AC_PROG_CC
+AM_PROG_LIBTOOL
+
+PKG_CHECK_MODULES(PROFILER, mono glib-2.0)
+
+AC_PATH_PROG(MCS, mcs)
+AC_PATH_PROG(MONO, mono)
+
+AC_OUTPUT([
+Makefile
+profiler/Makefile
+HeapShot.Reader/Makefile
+HeapShot.Gui.Widgets/Makefile
+HeapShot.Gui/Makefile
+HeapShot.Gui/heap-shot-gui
+HeapShot/heap-shot
+HeapShot/Makefile
+])
+
+

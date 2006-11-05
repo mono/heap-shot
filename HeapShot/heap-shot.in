@@ -1,0 +1,16 @@
+#!/bin/sh
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+pkglibdir=@pkglibdir@
+
+exe_name="HeapShot.exe"
+
+if [ -e ./$exe_name ] && [ -e ./Makefile ] && [ -e ./HeapShot.cs ]; then
+    #echo "*** Running uninstalled heap-shot ***"
+    EXE_TO_RUN="./$exe_name"
+else
+    EXE_TO_RUN="$pkglibdir/$exe_name"
+fi
+
+mono --debug $MONO_EXTRA_ARGS $EXE_TO_RUN "$@"
