@@ -106,4 +106,25 @@ Using the Command Line HeapShot
 
 		heap-prof outfile_0.omap
 
+	The options are:
 
+		-i 	Show an inverse object dump 
+
+			Show which objects hold references to a given
+			type, instead of which objects were created
+			by a given type.
+
+		-r	Include roots
+
+		-s OLD  Used to compare objects between two snapshots
+			in time.
+
+Comparing changes across time
+=============================
+
+	You must get two snapshots in time of your running
+	application, and then run the command like this:
+
+		heap-shot /tmp/outfile_1.omap -s /tmp/outfile_0.omap
+
+	This will only show the difference between the two times.
