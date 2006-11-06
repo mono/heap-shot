@@ -1,3 +1,14 @@
+2006-11-06  Raja R Harinath  <rharinath@novell.com>
+
+	* configure.in (HeapShot/heap-shot): Separate out output command.
+	Make generated file executable.
+	(HeapShot.Gui/heap-shot-gui): Likewise.
+	* HeapShot/Makefile.am: Remove custom makerule for heap-shot.
+	* HeapShot.Gui/Makefile.am: Remove custom makerule for heap-shot-gui.
+	* HeapShot.Gui.Widgets/Makefile.am (RES_CSFLAGS): New.  Look for
+	resource files in the source directory.
+	($(TARGET)): Use it.  Depend on resource files too.
+
 2006-11-05  Lluis Sanchez Gual  <lluis@novell.com>
 
 	Initial import of heap-shot.

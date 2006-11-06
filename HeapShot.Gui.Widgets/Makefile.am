@@ -15,11 +15,11 @@ RES = gtk-gui/objects.xml \
 	class.png \
 	field.png
 
-
 SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
+RES_CSFLAGS = $(foreach res, $(RES), -resource:$(srcdir)/$(res),$(res))
 
-$(TARGET): $(SRCDIR_CSFILES)
-	$(CSC) -out:$@ $(CSFLAGS) $(RES:%=/resource:%) $^
+$(TARGET): $(SRCDIR_CSFILES) $(RES)
+	$(CSC) -out:$@ $(CSFLAGS) $(RES_CSFLAGS) $(SRCDIR_CSFILES)
 
 all: $(TARGET)
 

@@ -17,10 +17,6 @@ SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
 $(TARGET): $(SRCDIR_CSFILES)
 	$(CSC) -out:$@ -r:../HeapShot.Reader/HeapShot.Reader.dll $(CSFLAGS) $^
 
-$(WRAPPER): $(srcdir)/$(WRAPPER).in
-	sed -e "s|\@pkglibdir\@|$(pkglibdir)|g" < $(srcdir)/$(WRAPPER).in > $@
-	chmod +x $(WRAPPER)
-
 all: $(TARGET) $(WRAPPER)
 
 install-data-local: $(TARGET)

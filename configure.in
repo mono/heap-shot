@@ -10,14 +10,15 @@ AC_PATH_PROG(MONO, mono)
 pkglibdir=$prefix/lib/heapshot
 AC_SUBST(pkglibdir)
 
+AC_CONFIG_FILES([HeapShot/heap-shot],[chmod +x HeapShot/heap-shot])
+AC_CONFIG_FILES([HeapShot.Gui/heap-shot-gui],[chmod +x HeapShot.Gui/heap-shot-gui])
+
 AC_OUTPUT([
 Makefile
 profiler/Makefile
 HeapShot.Reader/Makefile
 HeapShot.Gui.Widgets/Makefile
 HeapShot.Gui/Makefile
-HeapShot.Gui/heap-shot-gui
-HeapShot/heap-shot
 HeapShot/Makefile
 ])
 
