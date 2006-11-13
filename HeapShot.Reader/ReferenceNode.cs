@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -30,19 +31,25 @@ namespace HeapShot.Reader
 	public class ReferenceNode
 	{
 		bool inverse;
+		ObjectMapReader map;
+		
 		public string TypeName;
 		public int RefCount;
 		public int RefsToParent;
 		public uint TotalMemory;
+		int type;
+		bool globalRefs;
 		
 		public ArrayList references;
 		public ArrayList fieldReferences;
-		public Hashtable refObjects = new Hashtable ();
-		public Hashtable parentObjects = new Hashtable ();
+		public Dictionary<int,int> refObjects = new Dictionary<int,int> ();
+		public Dictionary<int,int> parentObjects = new Dictionary<int,int> ();
 		
-		public ReferenceNode (string typeName, bool inverse)
+		public ReferenceNode (ObjectMapReader map, int type, bool inverse)
 		{
-			TypeName = typeName;
+			this.map = map;
+			this.type = type;
+			TypeName = map.GetTypeName (type);
 			this.inverse = inverse;
 		}
 		
@@ -54,19 +61,27 @@ namespace HeapShot.Reader
 			get { return fieldReferences != null ? fieldReferences : (ICollection) Type.EmptyTypes; }
 		}
 		
-		public void AddReference (ObjectInfo obj)
+		public void AddGlobalReferences ()
 		{
-			AddReference (null, obj, null);
+			RefCount = map.GetObjectCountForType (type);
+			RefsToParent = 0;
+			TotalMemory = map.GetObjectSizeForType (type);
+			globalRefs = true;
 		}
 		
-		public void AddReference (ObjectInfo parentObject, ObjectInfo obj)
+		public void AddReference (int obj)
+		{
+			AddReference (-1, obj, null);
+		}
+		
+		public void AddReference (int parentObject, int obj)
 		{
 			AddReference (parentObject, obj, (string) null);
 		}
 		
-		void AddReference (ObjectInfo parentObject, ObjectInfo obj, string fieldName)
+		void AddReference (int parentObject, int obj, string fieldName)
 		{
-			if (parentObject != null && !parentObjects.ContainsKey (parentObject)) {
+			if (parentObject != -1 && !parentObjects.ContainsKey (parentObject)) {
 				parentObjects [parentObject] = parentObject;
 				RefsToParent++;
 			}
@@ -99,7 +114,7 @@ namespace HeapShot.Reader
 			RefCount++;
 			
 			refObjects.Add (obj, obj);
-			TotalMemory += obj.Size;
+			TotalMemory += map.GetObjectSize (obj);
 		}
 		
 		public bool HasReferences {
@@ -113,25 +128,28 @@ namespace HeapShot.Reader
 				if (references != null)
 					return references;
 
+				if (globalRefs) {
+					RefsToParent = 0;
+					RefCount = 0;
+					TotalMemory = 0;
+					foreach (int obj in map.GetObjectsByType (type))
+						AddReference (obj);
+					globalRefs = false;
+				}
+				
 				references = new ArrayList ();
-				foreach (ObjectInfo obj in refObjects.Keys) {
+				foreach (int obj in refObjects.Keys) {
 					if (inverse) {
-						if (obj.Referencers != null) {
-							for (int n=0; n<obj.Referencers.Count; n++) {
-								ObjectInfo oref = (ObjectInfo) obj.Referencers [n];
-								ReferenceNode cnode = GetReferenceNode (oref.Type.Name);
-								string fname = oref.GetReferencerField (obj);
-								cnode.AddReference (obj, oref, fname);
-							}
+						foreach (int oref in map.GetReferencers (obj)) {
+							ReferenceNode cnode = GetReferenceNode (oref);
+							string fname = map.GetReferencerField (oref, obj);
+							cnode.AddReference (obj, oref, fname);
 						}
 					} else {
-						if (obj.References != null) {
-							foreach (ObjectReference oref in obj.References) {
-								if (oref.Object == null) continue;
-								ReferenceNode cnode = GetReferenceNode (oref.Object.Type.Name);
-								string fname = obj.GetReferencerField (oref.Object);
-								cnode.AddReference (obj, oref.Object, fname);
-							}
+						foreach (int oref in map.GetReferences (obj)) {
+							ReferenceNode cnode = GetReferenceNode (oref);
+							string fname = map.GetReferencerField (obj, oref);
+							cnode.AddReference (obj, oref, fname);
 						}
 					}
 				}
@@ -139,7 +157,6 @@ namespace HeapShot.Reader
 					r.Flush ();
 
 				refObjects = null;
-				references.Sort (new ReferenceSorter ());
 				return references;
 			}
 		}
@@ -149,13 +166,14 @@ namespace HeapShot.Reader
 			parentObjects = null;
 		}
 		
-		public ReferenceNode GetReferenceNode (string name)
+		public ReferenceNode GetReferenceNode (int obj)
 		{
+			string name = map.GetObjectTypeName (obj);
 			foreach (ReferenceNode cnode in references) {
 				if (cnode.TypeName == name)
 					return cnode;
 			}
-			ReferenceNode nod = new ReferenceNode (name, inverse);
+			ReferenceNode nod = new ReferenceNode (map, map.GetObjectType (obj), inverse);
 			references.Add (nod);
 			return nod;
 		}

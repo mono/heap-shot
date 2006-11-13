@@ -35,6 +35,10 @@ struct _OutfileWriter {
         FILE *out;
         GHashTable *seen_items;
         int type_count;
+        int object_count;
+        int reference_count;
+        int field_count;
+        long saved_outfile_offset;
 };
 
 OutfileWriter *outfile_writer_open_objectmap (const char *filename);

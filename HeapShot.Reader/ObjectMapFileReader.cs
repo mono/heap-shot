@@ -30,15 +30,45 @@ namespace HeapShot.Reader {
 
 	public class ObjectMapReader 
 	{
-		const uint magic_number = 0x4eabbdd1;
-		const int expected_log_version = 5;
+		const uint magic_number = 0x4eabfdd1;
+		const int expected_log_version = 6;
 		const int expected_summary_version = 2;
 		const string log_file_label = "heap-shot logfile";
-		const string summary_file_label = "heap-shot summary";
 		
 		bool terminated_normally = true;
 		string name;
 		DateTime timestamp;
+		uint numTypes;
+		uint numObjects;
+		uint numReferences;
+		uint numFields;
+		uint totalMemory;
+		uint objectCount;
+		
+		int curObject;
+		int curType;
+		int curField;
+		int curRef;
+		
+		ObjectInfo[] objects;
+		TypeInfo[] types;
+		string[] fieldNames;
+		int[] objectIndices;
+		int[] typeIndices;
+		int[] references;
+		int[] inverseRefs;
+		int[] fieldReferences;
+		bool[] filteredObjects;
+		
+		uint[] referenceCodes;
+		uint[] objectTypeCodes;
+		uint[] fieldCodes;
+		uint[] fieldReferenceCodes;
+		uint[] objectCodes;
+		
+		internal ObjectMapReader ()
+		{
+		}
 		
 		public ObjectMapReader (string filename)
 		{
@@ -64,6 +94,14 @@ namespace HeapShot.Reader {
 		
 		public DateTime Timestamp {
 			get { return timestamp; }
+		}
+		
+		public uint TotalMemory {
+			get { return totalMemory; }
+		}
+		
+		public uint NumObjects {
+			get { return objectCount; }
 		}
 		
 		public static ObjectMapReader CreateProcessSnapshot (int pid)
@@ -108,8 +146,7 @@ namespace HeapShot.Reader {
 
 		///////////////////////////////////////////////////////////////////
 
-		// Return true if this is a summary file, false if it is a log file.
-		private bool ReadPreamble (BinaryReader reader)
+		private void ReadPreamble (BinaryReader reader)
 		{
 			uint this_magic;
 			this_magic = reader.ReadUInt32 ();
@@ -124,16 +161,11 @@ namespace HeapShot.Reader {
 			this_version = reader.ReadInt32 ();
 
 			string this_label;
-			bool is_summary;
 			int expected_version;
 
 			this_label = reader.ReadString ();
 			if (this_label == log_file_label) {
-				is_summary = false;
 				expected_version = expected_log_version;
-			} else if (this_label == summary_file_label) {
-				is_summary = true;
-				expected_version = expected_summary_version;
 			} else
 				throw new Exception ("Unknown file label in heap-shot outfile");
 
@@ -143,8 +175,11 @@ namespace HeapShot.Reader {
 						     this_label, expected_version, this_version);
 				throw new Exception (msg);
 			}
-
-			return is_summary;
+			numTypes = reader.ReadUInt32 ();
+			numObjects = reader.ReadUInt32 ();
+			numReferences = reader.ReadUInt32 ();
+			numFields = reader.ReadUInt32 ();
+			objectCount = numObjects;
 		}
 
 		//
@@ -153,12 +188,20 @@ namespace HeapShot.Reader {
 
 		// These need to agree w/ the definitions in outfile-writer.c
 		const byte TAG_TYPE      = 0x01;
-		const byte TAG_OBJECT    = 0x06;
+		const byte TAG_OBJECT    = 0x02;
 		const byte TAG_EOS       = 0xff;
 
 		private void ReadLogFile (BinaryReader reader)
 		{
 			int chunk_count = 0;
+			
+			objects = new ObjectInfo [numObjects];
+			types = new TypeInfo [numTypes];
+			objectTypeCodes = new uint [numObjects];
+			referenceCodes = new uint [numReferences];
+			fieldReferenceCodes = new uint [numReferences];
+			fieldCodes = new uint [numFields];
+			fieldNames = new string [numFields];
 
 			try {
 				while (ReadLogFileChunk (reader))
@@ -175,6 +218,11 @@ namespace HeapShot.Reader {
 			}
 			BuildMap ();
 			Spew ("Processed {0} chunks", chunk_count);
+			
+			objectTypeCodes = null;
+			referenceCodes = null;
+			fieldReferenceCodes = null;
+			fieldCodes = null;
 		}
 
 		private bool ReadLogFileChunk (BinaryReader reader)
@@ -206,174 +254,312 @@ namespace HeapShot.Reader {
 		
 		private void ReadLogFileChunk_Type (BinaryReader reader)
 		{
-			uint code;
-			code = reader.ReadUInt32 ();
-
-			string name;
-			name = reader.ReadString ();
+			uint code = reader.ReadUInt32 ();
+			string name = reader.ReadString ();
 			
-			ArrayList fields = new ArrayList ();
+			types [curType].Code = code;
+			types [curType].Name = name;
+			types [curType].FieldsIndex = curField;
+			
+			int nf = 0;
 			uint fcode;
 			while ((fcode = reader.ReadUInt32 ()) != 0) {
-				FieldInfo f = new FieldInfo ();
-				f.Code = fcode;
-				f.Name = reader.ReadString ();
-				fields.Add (f);
+				fieldCodes [curField] = fcode;
+				fieldNames [curField] = reader.ReadString ();
+				curField++;
+				nf++;
 			}
-
-			RegisterType (code, name, (FieldInfo[]) fields.ToArray (typeof(FieldInfo)));
+			types [curType].FieldsCount = nf;
+			curType++;
 		}
 		
 		private void ReadLogFileChunk_Object (BinaryReader reader)
 		{
-			uint code;
-			code = reader.ReadUInt32 ();
-
-			uint typeCode;
-			typeCode = reader.ReadUInt32 ();
-
-			uint size;
-			size = reader.ReadUInt32 ();
+			objects [curObject].Code = reader.ReadUInt32 ();
+			objectTypeCodes [curObject] = reader.ReadUInt32 ();
+			objects [curObject].Size = reader.ReadUInt32 ();
+			objects [curObject].RefsIndex = curRef;
+			totalMemory += objects [curObject].Size;
 			
-			// Read references
+			// Read referenceCodes
 			
-			ArrayList refs = new ArrayList ();
+			int nr = 0;
 			uint oref;
 			while ((oref = reader.ReadUInt32 ()) != 0) {
-				ObjectReference o = new ObjectReference ();
-				o.ObjectCode = oref;
-				o.FieldCode = reader.ReadUInt32 ();
-				refs.Add (o);
+				referenceCodes [curRef] = oref;
+				fieldReferenceCodes [curRef] = reader.ReadUInt32 ();
+				nr++;
+				curRef++;
 			}
-
-			ObjectReference[] array = refs.Count > 0 ? (ObjectReference[]) refs.ToArray (typeof(ObjectReference)) : null;
-			RegisterObject (code, typeCode, size, array);
-		}
-		
-		Hashtable types = new Hashtable ();
-		Dictionary<uint,ObjectInfo> objects = new Dictionary<uint,ObjectInfo> ();
-		Hashtable typesByName = new Hashtable ();
-		
-		void RegisterType (uint id, string name, FieldInfo[] fields)
-		{
-			TypeInfo t = new TypeInfo (id, name, fields);
-			types [id] = t;
-			typesByName [name] = t;
-		}
-		
-		void RegisterObject (uint id, uint typeId, uint size, ObjectReference[] refs)
-		{
-			TypeInfo type = (TypeInfo) types [typeId];
-			if (type == null) {
-				Spew ("Type not found");
-				return;
-			}
-			ObjectInfo ob = new ObjectInfo (id, type, size, refs);
-			type.Objects.Add (ob);
-			objects [id] = ob;
+			objects [curObject].RefsCount = nr;
+			curObject++;
 		}
 		
 		void BuildMap ()
 		{
-			foreach (ObjectInfo o in objects.Values) {
-				if (o.References != null) {
-					for (int n=0; n<o.References.Length; n++) {
-						ObjectInfo refo = GetObject (o.References [n].ObjectCode);
-						if (refo != null) {
-							o.References [n].Object = refo;
-							if (refo.Referencers == null)
-								refo.Referencers = new ArrayList (2);
-							refo.Referencers.Add (o);
+			// Build an array of object indices and sort it
+			
+			RefComparer objectComparer = new RefComparer ();
+			objectComparer.objects = objects;
+			
+			objectIndices = new int [numObjects];
+			for (int n=0; n < numObjects; n++)
+				objectIndices [n] = n;
+			Array.Sort<int> (objectIndices, objectComparer);
+			// Sorted array of codes needed for the binary search
+			objectCodes = new uint [numObjects];	
+			for (int n=0; n < numObjects; n++)
+				objectCodes [n] = objects [objectIndices[n]].Code;
+			
+			// Build an array of type indices and sort it
+			
+			TypeComparer typeComparer = new TypeComparer ();
+			typeComparer.types = types;
+			
+			typeIndices = new int [numTypes];
+			for (int n=0; n < numTypes; n++)
+				typeIndices [n] = n;
+			Array.Sort<int> (typeIndices, typeComparer);
+			// Sorted array of codes needed for the binary search
+			uint[] typeCodes = new uint [numTypes];	
+			for (int n=0; n < numTypes; n++) {
+				typeCodes [n] = types [typeIndices[n]].Code;
+			}
+			
+			Console.WriteLine ("--");
+			// Assign the type index to each object
+			
+			for (int n=0; n<numObjects; n++) {
+				int i = Array.BinarySearch<uint> (typeCodes, objectTypeCodes [n]);
+				if (i < 0)
+					Console.WriteLine ("TNF: " + objectTypeCodes [n]);
+				else {
+					objects [n].Type = typeIndices [i];
+					types [objects [n].Type].ObjectCount++;
+					types [objects [n].Type].TotalSize += objects [n].Size;
+				}
+			}
+			
+			// Build the array of referenceCodes, but using indexes
+			references = new int [numReferences];
+			
+			for (int n=0; n<numReferences; n++) {
+				int i = Array.BinarySearch (objectCodes, referenceCodes[n]);
+				if (i >= 0) {
+					references[n] = objectIndices [i];
+					objects [objectIndices [i]].InverseRefsCount++;
+				} else
+					references[n] = -1;
+			}
+			
+			// Calculate the array index of inverse referenceCodes for each object
+			
+			int[] invPositions = new int [numObjects];	// Temporary array to hold reference positions
+			int rp = 0;
+			for (int n=0; n<numObjects; n++) {
+				objects [n].InverseRefsIndex = rp;
+				invPositions [n] = rp;
+				rp += objects [n].InverseRefsCount;
+			}
+			
+			// Build the array of inverse referenceCodes
+			// Also calculate the index of each field name
+			
+			inverseRefs = new int [numReferences];
+			fieldReferences = new int [numReferences];
+			
+			for (int ob=0; ob < numObjects; ob++) {
+				int fi = types [objects [ob].Type].FieldsIndex;
+				int nf = fi + types [objects [ob].Type].FieldsCount;
+				int sr = objects [ob].RefsIndex;
+				int er = sr + objects [ob].RefsCount;
+				for (; sr<er; sr++) {
+					int i = references [sr];
+					if (i != -1) {
+						inverseRefs [invPositions [i]] = ob;
+						invPositions [i]++;
+					}
+					// If the reference is bound to a field, locate the field
+					uint fr = fieldReferenceCodes [sr];
+					if (fr != 0) {
+						for (int k=fi; k<nf; k++) {
+							if (fieldCodes [k] == fr) {
+								fieldReferences [sr] = k;
+								break;
+							}
 						}
 					}
 				}
 			}
-			foreach (TypeInfo t in types.Values) {
-				t.Objects.TrimToSize();
+		}
+		
+		class RefComparer: IComparer <int> {
+			public ObjectInfo[] objects;
+			
+			public int Compare (int x, int y) {
+				return objects [x].Code.CompareTo (objects [y].Code);
+			}
+		}
+		
+		class TypeComparer: IComparer <int> {
+			public TypeInfo[] types;
+			
+			public int Compare (int x, int y) {
+				return types [x].Code.CompareTo (types [y].Code);
 			}
 		}
 		
 		public ReferenceNode GetReferenceTree (string typeName, bool inverse)
 		{
-			ReferenceNode nod = new ReferenceNode (typeName, inverse);
-			foreach (ObjectInfo obj in GetObjectsByType (typeName)) {
-				nod.AddReference (obj);
-			}
+			int type = GetTypeFromName (typeName);
+			if (type != -1)
+				return GetReferenceTree (type, inverse);
+			else
+				return new ReferenceNode (this, type, inverse);
+		}
+		
+		public ReferenceNode GetReferenceTree (int type, bool inverse)
+		{
+			ReferenceNode nod = new ReferenceNode (this, type, inverse);
+			nod.AddGlobalReferences ();
 			nod.Flush ();
 			return nod;
 		}
 		
-		public ObjectInfo GetObject (uint id)
+		public int GetTypeCount ()
 		{
-			ObjectInfo val;
-			if (!objects.TryGetValue (id, out val))
-				return null;
-			else
-				return val;
+			return (int) numTypes;
 		}
 		
-		public ICollection GetObjectsByType (string typeName)
+		public int GetTypeFromName (string name)
 		{
-			TypeInfo t = (TypeInfo) typesByName [typeName];
-			if (t == null)
-				return new ObjectInfo [0];
-			else
-				return t.Objects;
+			for (int n=0; n<numTypes; n++) {
+				if (name == types [n].Name)
+					return n;
+			}
+			return -1;
 		}
 		
-		public ICollection GetTypes ()
+		public IEnumerable<int> GetObjectsByType (int type)
 		{
-			ArrayList list = new ArrayList ();
-			list.AddRange (types.Values);
-			list.Sort (new TypeSorter ());
-			return list;
+			for (int n=0; n<numObjects; n++) {
+				if (objects [n].Type == type && (filteredObjects == null || !filteredObjects[n])) {
+					yield return n;
+				}
+			}
+		}
+		
+		public static ObjectMapReader GetDiff (ObjectMapReader oldMap, ObjectMapReader newMap)
+		{
+			ObjectMapReader dif = new ObjectMapReader ();
+			dif.fieldNames = newMap.fieldNames;
+			dif.fieldReferences = newMap.fieldReferences;
+			dif.inverseRefs = newMap.inverseRefs;
+			dif.numFields = newMap.numFields;
+			dif.numObjects = newMap.numObjects;
+			dif.numReferences = newMap.numReferences;
+			dif.numTypes = newMap.numTypes;
+			dif.objectCount = newMap.objectCount;
+			dif.objectIndices = newMap.objectIndices;
+			dif.objects = newMap.objects;
+			dif.objectCodes = newMap.objectCodes;
+			dif.references = newMap.references;
+			dif.totalMemory = newMap.totalMemory;
+			dif.typeIndices = newMap.typeIndices;
+			dif.types = newMap.types;
+			dif.RemoveData (oldMap);
+			return dif;
 		}
 		
 		public void RemoveData (ObjectMapReader otherReader)
 		{
-			Hashtable toDelete = new Hashtable ();
-			
-			foreach (uint code in otherReader.objects.Keys) {
-				if (objects.ContainsKey (code)) {
-					ObjectInfo oi = objects [code];
-					toDelete [oi] = oi;
+			types = (TypeInfo[]) types.Clone ();
+			filteredObjects = new bool [numObjects];
+			for (int n=0; n<otherReader.numObjects; n++) {
+				int i = Array.BinarySearch (objectCodes, otherReader.objects[n].Code);
+				if (i >= 0) {
+					i = objectIndices [i];
+					filteredObjects [i] = true;
+					int t = objects[i].Type;
+					types [t].ObjectCount--;
+					types [t].TotalSize -= objects[i].Size;
+					this.objectCount--;
+					this.totalMemory -= objects[i].Size;
 				}
 			}
-			
-			ArrayList emptyTypes = new ArrayList ();
-			foreach (TypeInfo t in types.Values) {
-				for (int n = t.Objects.Count - 1; n >= 0; n--) {
-					if (toDelete.Contains (t.Objects [n]))
-						t.Objects.RemoveAt (n);
-				}
-				if (t.Objects.Count == 0)
-					emptyTypes.Add (t);
-			}
-			
-			foreach (TypeInfo t in emptyTypes) {
-				types.Remove (t.Code);
-				typesByName.Remove (t.Name);
-			}
-
-			// Rebuild referencers list
-			foreach (ObjectInfo o in objects.Values)
-				o.Referencers = null;
-			BuildMap ();
 		}
-	}
-	
-	class TypeSorter: IComparer
-	{
-		public int Compare (object x, object y)
+		
+		public IEnumerable<int> GetReferencers (int obj)
 		{
-			TypeInfo t1 = (TypeInfo) x;
-			TypeInfo t2 = (TypeInfo) y;
-			if (t1.Objects.Count == t2.Objects.Count)
-				return 0;
-			else if (t1.Objects.Count > t2.Objects.Count)
-				return -1;
-			else
-				return 1;
+			int n = objects [obj].InverseRefsIndex;
+			int end = n + objects [obj].InverseRefsCount;
+			for (; n<end; n++) {
+				int ro = inverseRefs [n];
+				if (filteredObjects == null || !filteredObjects [ro])
+					yield return ro;
+			}
+		}
+		
+		public IEnumerable<int> GetReferences (int obj)
+		{
+			int n = objects [obj].RefsIndex;
+			int end = n + objects [obj].RefsCount;
+			for (; n<end; n++) {
+				int ro = inverseRefs [n];
+				if (filteredObjects == null || !filteredObjects [ro])
+					yield return references [n];
+			}
+		}
+		
+		public string GetReferencerField (int obj, int refObj)
+		{
+			int n = objects [obj].RefsIndex;
+			int end = n + objects [obj].RefsCount;
+			for (; n<end; n++) {
+				if (references [n] == refObj) {
+					if (fieldReferences [n] != 0)
+						return fieldNames [fieldReferences [n]];
+					else
+						return null;
+				}
+			}
+			return null;
+		}
+		
+		public string GetObjectTypeName (int obj)
+		{
+			return types [objects [obj].Type].Name;
+		}
+		
+		public int GetObjectType (int obj)
+		{
+			return objects [obj].Type;
+		}
+		
+		public uint GetObjectSize (int obj)
+		{
+			return objects [obj].Size;
+		}
+		
+		public IEnumerable<int> GetTypes ()
+		{
+			for (int n=0; n<numTypes; n++)
+				yield return n;
+		}
+		
+		public string GetTypeName (int type)
+		{
+			return types [type].Name;
+		}
+		
+		public int GetObjectCountForType (int type)
+		{
+			return types [type].ObjectCount;
+		}
+		
+		public uint GetObjectSizeForType (int type)
+		{
+			return types [type].TotalSize;
 		}
 	}
 }

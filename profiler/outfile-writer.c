@@ -28,15 +28,11 @@
 
 #include "outfile-writer.h"
 
-#define MAGIC_NUMBER 0x4eabbdd1
-#define FILE_FORMAT_VERSION 5
+#define MAGIC_NUMBER 0x4eabfdd1
+#define FILE_FORMAT_VERSION 6
 #define FILE_LABEL "heap-shot logfile"
 #define TAG_TYPE    0x01
-#define TAG_METHOD  0x02
-#define TAG_CONTEXT 0x03
-#define TAG_GC      0x04
-#define TAG_RESIZE  0x05
-#define TAG_OBJECT  0x06
+#define TAG_OBJECT  0x02
 #define TAG_EOS     0xff
 
 static void
@@ -98,6 +94,13 @@ outfile_writer_open_objectmap (const char *filename)
         write_uint32 (ofw->out, MAGIC_NUMBER);
         write_int32  (ofw->out, FILE_FORMAT_VERSION);
         write_string (ofw->out, FILE_LABEL);
+        
+        ofw->saved_outfile_offset = ftell (ofw->out);
+        // we update these after dumping all objects
+        write_int32 (ofw->out, 0);   // total # of types
+        write_int32 (ofw->out, 0);   // total # of objects
+        write_int32 (ofw->out, 0); // total # of references
+        write_int32 (ofw->out, 0); // total # of fields
 
         return ofw;
 }
@@ -107,6 +110,13 @@ outfile_writer_close (OutfileWriter *ofw)
 {
         // Write out the end-of-stream tag.
         write_byte (ofw->out, TAG_EOS);
+        
+        // Seek back up to the right place in the header
+        fseek (ofw->out, ofw->saved_outfile_offset, SEEK_SET);
+        write_int32 (ofw->out, ofw->type_count);
+        write_int32 (ofw->out, ofw->object_count);
+        write_int32 (ofw->out, ofw->reference_count);
+        write_int32 (ofw->out, ofw->field_count);
         
         fclose (ofw->out);
 }
@@ -135,6 +145,7 @@ outfile_writer_dump_object_begin (OutfileWriter *ofw,
 				while ((field = mono_class_get_fields (klass, &iter)) != NULL) {
 	                write_pointer (ofw->out, field);
 	                write_string (ofw->out, mono_field_get_name (field));
+	                ofw->field_count++;
 				}
                 write_pointer (ofw->out, NULL);
         }
@@ -149,6 +160,7 @@ outfile_writer_dump_object_begin (OutfileWriter *ofw,
     		write_pointer (ofw->out, klass);
 			write_int32 (ofw->out, (gint32)0);
 		}
+		ofw->object_count++;
 }
 
 void
@@ -162,5 +174,6 @@ outfile_writer_dump_object_add_reference (OutfileWriter *ofw, gpointer ref, gpoi
 {
         write_pointer (ofw->out, ref);
         write_pointer (ofw->out, field);
+        ofw->reference_count++;
 }
 

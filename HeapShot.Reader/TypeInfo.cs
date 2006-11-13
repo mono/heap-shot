@@ -27,48 +27,13 @@ using System.Text.RegularExpressions;
 
 namespace HeapShot.Reader
 {
-	public class TypeInfo
+	public struct TypeInfo
 	{
-		uint code;
-		string name;
-		FieldInfo[] fields;
-		
-		public ArrayList Objects = new ArrayList ();
-		
-		internal TypeInfo (uint id, string name, FieldInfo[] fields)
-		{
-			this.code = id;
-			this.name = name;
-			this.fields = fields;
-		}
-		
-		public uint Code {
-			get { return code; }
-		}
-		
-		public string Name {
-			get { return name; }
-		}
-		
-		public FieldInfo[] Fields {
-			get { return fields; }
-		}
-		
-		public uint TotalSize {
-			get {
-				uint s = 0;
-				foreach (ObjectInfo oi in Objects)
-					s += oi.Size;
-				return s;
-			}
-		}
-		
-		public string GetFieldName (uint fieldCode)
-		{
-			foreach (FieldInfo f in Fields)
-				if (f.Code == fieldCode)
-					return f.Name;
-			return null;
-		}
+		public uint Code;
+		public string Name;
+		public int FieldsIndex;
+		public int FieldsCount;
+		public int ObjectCount;
+		public uint TotalSize;
 	}
 }

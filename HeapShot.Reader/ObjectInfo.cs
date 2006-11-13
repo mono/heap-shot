@@ -27,46 +27,14 @@ using System.Text.RegularExpressions;
 
 namespace HeapShot.Reader {
 	
-	public class ObjectInfo
+	public struct ObjectInfo
 	{
-		TypeInfo type;
-		uint size;
-		ObjectReference[] references;
-		uint code;
-		
-		public ArrayList Referencers;
-		
-		public ObjectInfo (uint code, TypeInfo type, uint size, ObjectReference[] references)
-		{
-			this.code = code;
-			this.type = type;
-			this.size = size + (uint)IntPtr.Size + (uint)IntPtr.Size;	// Add MonoObject overhead
-			this.references = references;
-		}
-		
-		public uint Code {
-			get { return code; }
-		}
-		
-		public TypeInfo Type {
-			get { return type; }
-		}
-		
-		public uint Size {
-			get { return size; }
-		}
-		
-		public ObjectReference[] References {
-			get { return references; }
-		}
-		
-		public string GetReferencerField (ObjectInfo referenced)
-		{
-			foreach (ObjectReference oref in References) {
-				if (oref.Object == referenced)
-					return this.Type.GetFieldName (oref.FieldCode);
-			}
-			return null;
-		}
+		public uint Code;
+		public int Type;
+		public uint Size;
+		public int RefsIndex;
+		public int RefsCount;
+		public int InverseRefsIndex;
+		public int InverseRefsCount;
 	}
 }

@@ -1,3 +1,26 @@
+2006-11-13  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* profiler/outfile-writer.h:
+	* profiler/outfile-writer.c: Removed unused constants. Added some
+	  totals in the file headers.
+	
+	* HeapShot.Gui.Widgets/ReferenceTreeViewer.cs: Track api changes.
+	  Load the tree in the background.
+	* HeapShot.Gui.Widgets/gtk-gui/gui.stetic,
+	  HeapShot.Gui.Widgets/gtk-gui/objects.xml: Updated.
+	* HeapShot.Gui.Widgets/gtk-gui/library.dat: Removed from build.
+	* HeapShot.Gui.Widgets/ObjectMapViewer.cs: Track api changes.
+	* configure.in: Fix directory name.
+	* HeapShot/ReferenceTreeReport.cs: Track api changes.
+	
+	* HeapShot.Reader/TypeInfo.cs:
+	* HeapShot.Reader/FieldInfo.cs:
+	* HeapShot.Reader/ObjectInfo.cs:
+	* HeapShot.Reader/ReferenceNode.cs:
+	* HeapShot.Reader/ObjectMapFileReader.cs: Redesigned the way object
+	  information is loaded in memory. It's now using big arrays of structs,
+	  which is much more efficient that reference objects.
+
 2006-11-06  Raja R Harinath  <rharinath@novell.com>
 
 	* configure.in (HeapShot/heap-shot): Separate out output command.

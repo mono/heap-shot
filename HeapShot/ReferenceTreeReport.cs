@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using HeapShot.Reader;
 
@@ -88,8 +89,8 @@ namespace HeapShot {
 					PrintRoots (omap, type, maxlevels);
 				} else {
 					// Show the tree for a type
-					ReferenceNode nod = new ReferenceNode (type, inverse);
-					foreach (ObjectInfo obj in omap.GetObjectsByType (type)) {
+					ReferenceNode nod = new ReferenceNode (omap, type, inverse);
+					foreach (int obj in omap.GetObjectsByType (type)) {
 						nod.AddReference (obj);
 					}
 					nod.Print (maxlevels);
@@ -97,9 +98,10 @@ namespace HeapShot {
 			} else {
 				// Show a summary
 				int tot = 0;
-				foreach (TypeInfo t in omap.GetTypes ()) {
-					Console.WriteLine ("{0} {1} {2}", t.Objects.Count, t.TotalSize, t.Name);
-					tot += t.Objects.Count;
+				foreach (int t in omap.GetTypes ()) {
+					int no = omap.GetObjectCountForType (t);
+					Console.WriteLine ("{0} {1} {2}", no, omap.GetObjectSizeForType (t), omap.GetTypeName (t));
+					tot += no;
 				}
 				Console.WriteLine ();
 				Console.WriteLine ("Total: " + tot);
@@ -108,19 +110,19 @@ namespace HeapShot {
 		
 		void PrintRoots (ObjectMapReader omap, string typeName, int maxlevels)
 		{
-			ArrayList path = new ArrayList ();
-			Hashtable roots = new Hashtable ();
-			Hashtable visited = new Hashtable ();
+			List<int> path = new List<int> ();
+			Dictionary<int,List<int>> roots = new Dictionary<int,List<int>> ();
+			Dictionary<int,int> visited = new Dictionary<int,int> ();
 			
-			foreach (ObjectInfo obj in omap.GetObjectsByType (typeName)) {
-				FindRoot (visited, path, roots, obj);
+			foreach (int obj in omap.GetObjectsByType (typeName)) {
+				FindRoot (omap, visited, path, roots, obj);
 				visited.Clear ();
 			}
 			
-			foreach (ArrayList ep in roots.Values) {
+			foreach (List<int> ep in roots.Values) {
 				for (int n=0; n < ep.Count && n < maxlevels; n++) {
-					ObjectInfo ob  = (ObjectInfo) ep [n];
-					Console.WriteLine (n + ". " + ob.Type.Name);
+					int ob  = ep [n];
+					Console.WriteLine (n + ". " + omap.GetObjectTypeName (ob));
 				}
 				if (maxlevels < ep.Count)
 					Console.WriteLine ("...");
@@ -130,28 +132,31 @@ namespace HeapShot {
 			}
 		}
 		
-		void FindRoot (Hashtable visited, ArrayList path, Hashtable roots, ObjectInfo obj)
+		void FindRoot (ObjectMapReader omap, Dictionary<int,int> visited, List<int> path, Dictionary<int,List<int>> roots, int obj)
 		{
-			if (visited.Contains (obj))
+			if (visited.ContainsKey (obj))
 				return;
 			visited [obj] = obj;
 			path.Add (obj);
-			if (obj.Referencers != null && obj.Referencers.Count > 0) {
-				foreach (ObjectInfo oref in obj.Referencers) {
-					FindRoot (visited, path, roots, oref);
-				}
-			} else {
+			
+			bool hasrefs = false;
+			foreach (int oref in omap.GetReferencers (obj)) {
+				hasrefs = true;
+				FindRoot (omap, visited, path, roots, oref);
+			}
+			
+			if (!hasrefs) {
 				// A root
-				ArrayList ep = (ArrayList) roots [obj];
+				List<int> ep = roots [obj];
 				if (ep == null) {
-					roots [obj] = path.Clone ();
+					roots [obj] = new List<int> (path);
 				} else {
 					if (ep.Count > path.Count)
-						roots [obj] = path.Clone ();
+						roots [obj] = new List<int> (path);
 				}
-				Console.WriteLine ("found root" + roots.Count + " " + path.Count + " " + obj.Type.Name);
-				foreach (ObjectInfo o in path) {
-					Console.Write (o.Type.Name + " / ");
+				Console.WriteLine ("found root" + roots.Count + " " + path.Count + " " + omap.GetObjectTypeName (obj));
+				foreach (int o in path) {
+					Console.Write (omap.GetObjectTypeName (o) + " / ");
 				}
 				Console.WriteLine ();
 			}

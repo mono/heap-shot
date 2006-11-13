@@ -50,6 +50,11 @@ namespace HeapShot.Gui.Widgets
 			labelName.Text = "";
 		}
 		
+		public event ProgressEventHandler ProgressEvent {
+			add { allObjectsTree.ProgressEvent += value; }
+			remove { allObjectsTree.ProgressEvent -= value; }
+		}
+		
 		public void AddFile (string fileName)
 		{
 			ObjectMapReader map = new ObjectMapReader (fileName);
@@ -78,14 +83,8 @@ namespace HeapShot.Gui.Widgets
 				else
 					labelName.Text = System.IO.Path.GetFileName (map.Name);
 					
-				int ni = 0;
-				uint mem = 0;
-				foreach (TypeInfo t in map.GetTypes ()) {
-					ni += t.Objects.Count;
-					mem += t.TotalSize;
-				}
-				labelCount.Text = ni.ToString ("n0");
-				labelMemory.Text = mem.ToString ("n0") + " bytes";
+				labelCount.Text = map.NumObjects.ToString ("n0");
+				labelMemory.Text = map.TotalMemory.ToString ("n0") + " bytes";
 			}
 		}
 		
@@ -183,8 +182,7 @@ namespace HeapShot.Gui.Widgets
 					return dif[2];
 			}
 			
-			ObjectMapReader res = new ObjectMapReader (m2.Name);
-			res.RemoveData (m1);
+			ObjectMapReader res = ObjectMapReader.GetDiff (m1, m2);
 			difs.Add (new ObjectMapReader[] { m1, m2, res });
 			return res;
 		}

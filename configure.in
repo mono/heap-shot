@@ -7,7 +7,7 @@ PKG_CHECK_MODULES(PROFILER, mono glib-2.0)
 
 AC_PATH_PROG(MCS, mcs)
 AC_PATH_PROG(MONO, mono)
-pkglibdir=$prefix/lib/heapshot
+pkglibdir=$prefix/lib/heap-shot
 AC_SUBST(pkglibdir)
 
 AC_CONFIG_FILES([HeapShot/heap-shot],[chmod +x HeapShot/heap-shot])

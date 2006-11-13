@@ -21,6 +21,9 @@ namespace Application
 			Aux ();
 			Console.WriteLine ("Ready");
 			Console.ReadLine ();
+			EndType rt2 = new EndType ();
+			Console.WriteLine ("Ready 2");
+			Console.ReadLine ();
 		}
 		
 		static void Aux ()

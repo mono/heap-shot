@@ -27,9 +27,9 @@ using System.Text.RegularExpressions;
 
 namespace HeapShot.Reader {
 		
-	public class FieldInfo
+	public struct FieldInfo
 	{
-		public uint Code;
+		public ulong Code;
 		public string Name;
 	}
 }

@@ -5,6 +5,8 @@ using HeapShot.Reader;
 
 namespace HeapShot.Gui.Widgets
 {
+	public delegate void ProgressEventHandler (int current, int max, string message);
+	
 	public class ReferenceTreeViewer : Gtk.Bin
 	{
 		protected Gtk.TreeView treeview;
@@ -21,10 +23,14 @@ namespace HeapShot.Gui.Widgets
 		const int InstancesCol = 6;
 		const int RefsCol = 7;
 		int TreeColRefs;
+		bool reloadRequested;
+		bool loading;
 		
 		ObjectMapReader file;
 		string typeName;
 		protected Gtk.HBox boxFilter;
+		
+		public event ProgressEventHandler ProgressEvent;
 
 		public ReferenceTreeViewer()
 		{
@@ -111,10 +117,35 @@ namespace HeapShot.Gui.Widgets
 			boxFilter.Visible = true;
 			treeview.Columns [TreeColRefs].Visible = InverseReferences;
 			
-			store.Clear ();
-			foreach (TypeInfo t in file.GetTypes ()) {
-				InternalFillType (file, t.Name);
+			if (loading) {
+				// If the tree is already being loaded, notify that loading
+				// has to start again, since the file has changed.
+				reloadRequested = true;
+				return;
 			}
+
+			loading = true;
+			store.Clear ();
+			int n=0;
+			foreach (int t in file.GetTypes ()) {
+				if (++n == 20) {
+					if (ProgressEvent != null) {
+						ProgressEvent (n, file.GetTypeCount (), null);
+					}
+					while (Gtk.Application.EventsPending ())
+						Gtk.Application.RunIteration ();
+					if (reloadRequested) {
+						loading = false;
+						reloadRequested = false;
+						FillAllTypes (this.file);
+						return;
+					}
+					n = 0;
+				}
+				if (file.GetObjectCountForType (t) > 0)
+					InternalFillType (file, t);
+			}
+			loading = false;
 		}
 		
 		public void FillType (ObjectMapReader file, string typeName)
@@ -124,13 +155,13 @@ namespace HeapShot.Gui.Widgets
 			store.Clear ();
 			boxFilter.Visible = false;
 			treeview.Columns [TreeColRefs].Visible = InverseReferences;
-			TreeIter iter = InternalFillType (file, typeName);
+			TreeIter iter = InternalFillType (file, file.GetTypeFromName (typeName));
 			treeview.ExpandRow (store.GetPath (iter), false);
 		}
 		
-		TreeIter InternalFillType (ObjectMapReader file, string typeName)
+		TreeIter InternalFillType (ObjectMapReader file, int type)
 		{
-			ReferenceNode node = file.GetReferenceTree (typeName, checkInverse.Active);
+			ReferenceNode node = file.GetReferenceTree (type, checkInverse.Active);
 			return AddNode (TreeIter.Zero, node);
 		}
 		
@@ -221,23 +252,34 @@ namespace HeapShot.Gui.Widgets
 			SortType type;
 			store.GetSortColumnId (out col, out type);
 			
-			ReferenceNode nod1 = (ReferenceNode) model.GetValue (a, ReferenceCol);
-			ReferenceNode nod2 = (ReferenceNode) model.GetValue (b, ReferenceCol);
-			switch (col) {
-				case 0:
-					return string.Compare (nod1.TypeName, nod2.TypeName);
-				case 1:
-					return nod1.RefCount.CompareTo (nod2.RefCount);
-				case 2:
-					return nod1.RefsToParent.CompareTo (nod2.RefsToParent);
-				case 3:
-					return nod1.TotalMemory.CompareTo (nod2.TotalMemory);
-				case 4:
-					return nod1.AverageSize.CompareTo (nod2.AverageSize);
-				default:
-					Console.WriteLine ("PPP: " + col);
-					return 1;
-//					throw new InvalidOperationException ();
+			object o1 = model.GetValue (a, ReferenceCol);
+			object o2 = model.GetValue (b, ReferenceCol);
+			
+			if (o1 is ReferenceNode && o2 is ReferenceNode) {
+				ReferenceNode nod1 = (ReferenceNode) o1;
+				ReferenceNode nod2 = (ReferenceNode) o2;
+				switch (col) {
+					case 0:
+						return string.Compare (nod1.TypeName, nod2.TypeName);
+					case 1:
+						return nod1.RefCount.CompareTo (nod2.RefCount);
+					case 2:
+						return nod1.RefsToParent.CompareTo (nod2.RefsToParent);
+					case 3:
+						return nod1.TotalMemory.CompareTo (nod2.TotalMemory);
+					case 4:
+						return nod1.AverageSize.CompareTo (nod2.AverageSize);
+					default:
+						Console.WriteLine ("PPP: " + col);
+						return 1;
+	//					throw new InvalidOperationException ();
+				}
+			} else if (o1 is FieldReference && o2 is FieldReference) {
+				return ((FieldReference)o1).FiledName.CompareTo (((FieldReference)o2).FiledName);
+			} else if (o1 is FieldReference) {
+				return -1;
+			} else {
+				return 1;
 			}
 		}
 		
