@@ -85,12 +85,17 @@ namespace HeapShot {
 			}
 			
 			if (type != null) {
+				int ntype = omap.GetTypeFromName (type);
+				if (ntype == -1) {
+					Console.WriteLine ("Type not found: " + type);
+					return;
+				}
 				if (roots) {
-					PrintRoots (omap, type, maxlevels);
+					PrintRoots (omap, ntype, maxlevels);
 				} else {
 					// Show the tree for a type
-					ReferenceNode nod = new ReferenceNode (omap, type, inverse);
-					foreach (int obj in omap.GetObjectsByType (type)) {
+					ReferenceNode nod = new ReferenceNode (omap, ntype, inverse);
+					foreach (int obj in omap.GetObjectsByType (ntype)) {
 						nod.AddReference (obj);
 					}
 					nod.Print (maxlevels);
@@ -108,13 +113,13 @@ namespace HeapShot {
 			}
 		}
 		
-		void PrintRoots (ObjectMapReader omap, string typeName, int maxlevels)
+		void PrintRoots (ObjectMapReader omap, int type, int maxlevels)
 		{
 			List<int> path = new List<int> ();
 			Dictionary<int,List<int>> roots = new Dictionary<int,List<int>> ();
 			Dictionary<int,int> visited = new Dictionary<int,int> ();
 			
-			foreach (int obj in omap.GetObjectsByType (typeName)) {
+			foreach (int obj in omap.GetObjectsByType (type)) {
 				FindRoot (omap, visited, path, roots, obj);
 				visited.Clear ();
 			}
