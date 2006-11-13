@@ -379,7 +379,7 @@ mono_profiler_startup (const char *desc)
 
 	const char *outfilename;
 
-	g_assert (! strncmp (desc, "heap-shot", 10));
+	g_assert (! strncmp (desc, "heap-shot", 9));
 
 	outfilename = strchr (desc, ':');
 	if (outfilename == NULL)

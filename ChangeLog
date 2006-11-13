@@ -1,3 +1,8 @@
+2006-11-13  Joe Shaw  <joeshaw@novell.com>
+
+	* profiler/heap-shot.c (mono_profiler_startup): Fix an
+	off-by-one in counting the length of the name "heap-shot".
+
 2006-11-13  Lluis Sanchez Gual  <lluis@novell.com> 
 
 	* HeapShot/ReferenceTreeReport.cs: Track api changes.
