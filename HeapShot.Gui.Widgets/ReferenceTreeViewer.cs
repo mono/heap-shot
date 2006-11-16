@@ -71,8 +71,6 @@ namespace HeapShot.Gui.Widgets
 			treeview.RowActivated += new Gtk.RowActivatedHandler (OnNodeActivated);
 			treeview.AppendColumn (new Gtk.TreeViewColumn());
 			
-			Console.WriteLine (treeview.Columns [1].Widget);
-			
 			int nc = 0;
 			foreach (TreeViewColumn c in treeview.Columns) {
 				store.SetSortFunc (nc, CompareNodes);

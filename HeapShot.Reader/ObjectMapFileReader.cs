@@ -326,14 +326,11 @@ namespace HeapShot.Reader {
 				typeCodes [n] = types [typeIndices[n]].Code;
 			}
 			
-			Console.WriteLine ("--");
 			// Assign the type index to each object
 			
 			for (int n=0; n<numObjects; n++) {
 				int i = Array.BinarySearch<uint> (typeCodes, objectTypeCodes [n]);
-				if (i < 0)
-					Console.WriteLine ("TNF: " + objectTypeCodes [n]);
-				else {
+				if (i >= 0) {
 					objects [n].Type = typeIndices [i];
 					types [objects [n].Type].ObjectCount++;
 					types [objects [n].Type].TotalSize += objects [n].Size;
@@ -505,9 +502,9 @@ namespace HeapShot.Reader {
 			int n = objects [obj].RefsIndex;
 			int end = n + objects [obj].RefsCount;
 			for (; n<end; n++) {
-				int ro = inverseRefs [n];
+				int ro = references [n];
 				if (filteredObjects == null || !filteredObjects [ro])
-					yield return references [n];
+					yield return ro;
 			}
 		}
 		
