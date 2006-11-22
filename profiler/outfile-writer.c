@@ -131,7 +131,8 @@ outfile_writer_dump_object_begin (OutfileWriter *ofw,
         /* First, add this type if we haven't seen it before. */
         if (g_hash_table_lookup (ofw->seen_items, klass) == NULL) {
 				MonoClassField *field;
-				gpointer iter = NULL;
+		        MonoClass *cur_klass = klass;
+				gpointer iter;
 				
                 name = mono_type_full_name (mono_class_get_type (klass));
                 write_byte (ofw->out, TAG_TYPE);
@@ -142,11 +143,15 @@ outfile_writer_dump_object_begin (OutfileWriter *ofw,
                 ++ofw->type_count;
                 
                 // Write every field
-				while ((field = mono_class_get_fields (klass, &iter)) != NULL) {
-	                write_pointer (ofw->out, field);
-	                write_string (ofw->out, mono_field_get_name (field));
-	                ofw->field_count++;
-				}
+                do {
+                	iter = NULL;
+					while ((field = mono_class_get_fields (cur_klass, &iter)) != NULL) {
+		                write_pointer (ofw->out, field);
+		                write_string (ofw->out, mono_field_get_name (field));
+		                ofw->field_count++;
+					}
+					cur_klass = mono_class_get_parent (cur_klass);
+				} while (cur_klass);
                 write_pointer (ofw->out, NULL);
         }
         write_byte (ofw->out, TAG_OBJECT);

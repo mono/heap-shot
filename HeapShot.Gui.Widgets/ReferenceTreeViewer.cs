@@ -22,6 +22,7 @@ namespace HeapShot.Gui.Widgets
 		const int AvgSizeCol = 5;
 		const int InstancesCol = 6;
 		const int RefsCol = 7;
+		const int RootRefsCol = 8;
 		int TreeColRefs;
 		bool reloadRequested;
 		bool loading;
@@ -35,7 +36,7 @@ namespace HeapShot.Gui.Widgets
 		public ReferenceTreeViewer()
 		{
 			Stetic.Gui.Build(this, typeof(HeapShot.Gui.Widgets.ReferenceTreeViewer));
-			store = new Gtk.TreeStore (typeof(object), typeof(string), typeof(string), typeof(bool), typeof(string), typeof(string), typeof(string), typeof(string));
+			store = new Gtk.TreeStore (typeof(object), typeof(string), typeof(string), typeof(bool), typeof(string), typeof(string), typeof(string), typeof(string), typeof(string));
 			treeview.Model = store;
 			treeview.HeadersClickable = true;
 			
@@ -55,17 +56,20 @@ namespace HeapShot.Gui.Widgets
 			treeview.AppendColumn (complete_column);
 			CellRendererText crt = new CellRendererText ();
 			crt.Xalign = 1;
-			treeview.AppendColumn ("Instances", crt, "text", InstancesCol).Clickable = true;
+			treeview.AppendColumn ("Instances", crt, "text", InstancesCol);
 			crt = new CellRendererText ();
 			crt.Xalign = 1;
 			TreeColRefs = treeview.Columns.Length;
-			treeview.AppendColumn ("References", crt, "text", RefsCol).Clickable = true;
+			treeview.AppendColumn ("References", crt, "text", RefsCol);
 			crt = new CellRendererText ();
 			crt.Xalign = 1;
-			treeview.AppendColumn ("Memory Size", crt, "text", SizeCol).Clickable = true;
+			treeview.AppendColumn ("Root Refs", crt, "text", RootRefsCol);
 			crt = new CellRendererText ();
 			crt.Xalign = 1;
-			treeview.AppendColumn ("Avg. Size", crt, "text", AvgSizeCol).Clickable = true;
+			treeview.AppendColumn ("Memory Size", crt, "text", SizeCol);
+			crt = new CellRendererText ();
+			crt.Xalign = 1;
+			treeview.AppendColumn ("Avg. Size", crt, "text", AvgSizeCol);
 			
 			treeview.TestExpandRow += new Gtk.TestExpandRowHandler (OnTestExpandRow);
 			treeview.RowActivated += new Gtk.RowActivatedHandler (OnNodeActivated);
@@ -114,6 +118,7 @@ namespace HeapShot.Gui.Widgets
 			this.typeName = null;
 			boxFilter.Visible = true;
 			treeview.Columns [TreeColRefs].Visible = InverseReferences;
+			treeview.Columns [TreeColRefs+1].Visible = InverseReferences;
 			
 			if (loading) {
 				// If the tree is already being loaded, notify that loading
@@ -153,6 +158,7 @@ namespace HeapShot.Gui.Widgets
 			store.Clear ();
 			boxFilter.Visible = false;
 			treeview.Columns [TreeColRefs].Visible = InverseReferences;
+			treeview.Columns [TreeColRefs+1].Visible = InverseReferences;
 			TreeIter iter = InternalFillType (file, file.GetTypeFromName (typeName));
 			treeview.ExpandRow (store.GetPath (iter), false);
 		}
@@ -178,15 +184,16 @@ namespace HeapShot.Gui.Widgets
 			
 			TreeIter iter;
 			if (parent.Equals (TreeIter.Zero)) {
-				iter = store.AppendValues (node, "class", node.TypeName, !node.HasReferences, node.TotalMemory.ToString("n0"), node.AverageSize.ToString("n0"), node.RefCount.ToString ("n0"), "");
+				iter = store.AppendValues (node, "class", node.TypeName, !node.HasReferences, node.TotalMemory.ToString("n0"), node.AverageSize.ToString("n0"), node.RefCount.ToString ("n0"), "", "");
 			} else {
 				string refs = (InverseReferences ? node.RefsToParent.ToString ("n0") : "");
-				iter = store.AppendValues (parent, node, "class", node.TypeName, !node.HasReferences, node.TotalMemory.ToString("n0"), node.AverageSize.ToString("n0"), node.RefCount.ToString ("n0"), refs);
+				string rootRefs = (InverseReferences ? node.RefsToRoot.ToString ("n0") : "");
+				iter = store.AppendValues (parent, node, "class", node.TypeName, !node.HasReferences, node.TotalMemory.ToString("n0"), node.AverageSize.ToString("n0"), node.RefCount.ToString ("n0"), refs, rootRefs);
 			}
 
 			if (node.HasReferences) {
 				// Add a dummy element to make the expansion icon visible
-				store.AppendValues (iter, null, "", "", true, "", "", "", "");
+				store.AppendValues (iter, null, "", "", true, "", "", "", "", "");
 			}
 			return iter;
 		}
@@ -194,9 +201,9 @@ namespace HeapShot.Gui.Widgets
 		TreeIter AddNode (TreeIter parent, FieldReference node)
 		{
 			if (parent.Equals (TreeIter.Zero))
-				return store.AppendValues (node, "field", node.FiledName, true, "", "", node.RefCount.ToString ("n0"), "");
+				return store.AppendValues (node, "field", node.FiledName, true, "", "", node.RefCount.ToString ("n0"), "", "");
 			else
-				return store.AppendValues (parent, node, "field", node.FiledName, true, "", "", node.RefCount.ToString ("n0"), "");
+				return store.AppendValues (parent, node, "field", node.FiledName, true, "", "", node.RefCount.ToString ("n0"), "", "");
 		}
 
 		private void OnTestExpandRow (object sender, Gtk.TestExpandRowArgs args)
@@ -264,20 +271,21 @@ namespace HeapShot.Gui.Widgets
 					case 2:
 						return nod1.RefsToParent.CompareTo (nod2.RefsToParent);
 					case 3:
-						return nod1.TotalMemory.CompareTo (nod2.TotalMemory);
+						return nod1.RefsToRoot.CompareTo (nod2.RefsToRoot);
 					case 4:
+						return nod1.TotalMemory.CompareTo (nod2.TotalMemory);
+					case 5:
 						return nod1.AverageSize.CompareTo (nod2.AverageSize);
 					default:
-						Console.WriteLine ("PPP: " + col);
 						return 1;
 	//					throw new InvalidOperationException ();
 				}
 			} else if (o1 is FieldReference && o2 is FieldReference) {
 				return ((FieldReference)o1).FiledName.CompareTo (((FieldReference)o2).FiledName);
 			} else if (o1 is FieldReference) {
-				return -1;
-			} else {
 				return 1;
+			} else {
+				return -1;
 			}
 		}
 		

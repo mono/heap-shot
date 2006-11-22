@@ -123,43 +123,49 @@ heap_shot_gc_func (MonoProfiler *p, MonoGCEvent e, int gen)
 static gboolean
 heap_scan_object (MonoProfiler *p, MonoObject *obj, MonoClass *klass, MonoClassField *parent_field)
 {
-	gpointer iter = NULL;
+	gpointer iter;
 	MonoClassField *field;
 	gboolean has_refs = FALSE;
+	MonoClass *cur_klass = klass;
 
-	while ((field = mono_class_get_fields (klass, &iter)) != NULL) {
-		MonoType* field_type = mono_field_get_type (field);
-		// Skip static fields
-		if (mono_field_get_flags (field) & 0x0010 /*FIELD_ATTRIBUTE_STATIC*/)
-			continue;
+	do {
+		iter = NULL;
+		while ((field = mono_class_get_fields (cur_klass, &iter)) != NULL) {
+			MonoType* field_type = mono_field_get_type (field);
+			// Skip static fields
+			if (mono_field_get_flags (field) & 0x0010 /*FIELD_ATTRIBUTE_STATIC*/)
+				continue;
 
-		if (MONO_TYPE_IS_REFERENCE (field_type)) {
-			// Dump the object reference
-			MonoObject* ref;
-			has_refs = TRUE;
-			mono_field_get_value (obj, field, &ref);
-			if (ref && g_hash_table_lookup (p->work_objects_hash, ref))
-				outfile_writer_dump_object_add_reference (p->dumpfile_writer, ref, parent_field);
-		}
-		else {
-			MonoClass *fclass = mono_class_from_mono_type (field_type);
-			if (fclass && mono_class_is_valuetype (fclass)) {
-				if (g_hash_table_lookup (p->exclude_class_hash, fclass))
-					continue;
-				// It's a value type. Check if the class is big enough to hold references
-				int size = mono_class_value_size (fclass, NULL);
-				if (size >= sizeof(gpointer) && fclass != klass) {
-					// Get the object value and scan it
-					char* vop = g_malloc (size);
-					mono_field_get_value (obj, field, vop);
-					// Recursively scan the object
-					if (heap_scan_object (p, (MonoObject*)(vop - sizeof(MonoObject)), fclass, parent_field))
-						has_refs = TRUE;
-					g_free (vop);
+			if (MONO_TYPE_IS_REFERENCE (field_type)) {
+				// Dump the object reference
+				MonoObject* ref;
+				has_refs = TRUE;
+				mono_field_get_value (obj, field, &ref);
+				if (ref && g_hash_table_lookup (p->work_objects_hash, ref))
+					outfile_writer_dump_object_add_reference (p->dumpfile_writer, ref, parent_field ? parent_field : field);
+			}
+			else {
+				MonoClass *fclass = mono_class_from_mono_type (field_type);
+				if (fclass && mono_class_is_valuetype (fclass)) {
+					if (g_hash_table_lookup (p->exclude_class_hash, fclass))
+						continue;
+					// It's a value type. Check if the class is big enough to hold references
+					int size = mono_class_value_size (fclass, NULL);
+					if (size >= sizeof(gpointer) && fclass != cur_klass) {
+						// Get the object value and scan it
+						char* vop = g_malloc (size);
+						mono_field_get_value (obj, field, vop);
+						// Recursively scan the object
+						if (heap_scan_object (p, (MonoObject*)(vop - sizeof(MonoObject)), fclass, parent_field))
+							has_refs = TRUE;
+						g_free (vop);
+					}
 				}
 			}
 		}
-	}
+		cur_klass = mono_class_get_parent (cur_klass);
+	} while (cur_klass);
+	
 	// If the class doesn't contain references, register in the exclude_class_hash table,
 	// so it won't be scanned again.
 	if (!has_refs && !g_hash_table_lookup (p->exclude_class_hash, klass))

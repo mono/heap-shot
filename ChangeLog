@@ -1,3 +1,14 @@
+2006-11-22  Lluis Sanchez Gual <lluis@novell.com> 
+
+	* profiler/outfile-writer.c, profiler/heap-shot.c: Scan the whole type
+	  hierarchy of a type when looking for references.
+	* HeapShot.Gui.Widgets/ReferenceTreeViewer.cs,
+	  HeapShot.Reader/ReferenceNode.cs: Added column which shows the
+	  reference count to the root type being inspected.
+	* HeapShot.Gui.Widgets/gtk-gui/gui.stetic: Updated.
+	* HeapShot.Reader/ObjectMapFileReader.cs: Added GetRoots method, not
+	  used right now.
+
 2006-11-15  Lluis Sanchez Gual  <lluis@novell.com> 
 
 	* HeapShot.Gui.Widgets/ReferenceTreeViewer.cs: Removed debug code.

@@ -423,6 +423,48 @@ namespace HeapShot.Reader {
 			return nod;
 		}
 		
+		public List<List<int>> GetRoots (int type)
+		{
+			List<int> path = new List<int> ();
+			Dictionary<int,List<int>> roots = new Dictionary<int,List<int>> ();
+			Dictionary<int,int> visited = new Dictionary<int,int> ();
+			
+			foreach (int obj in GetObjectsByType (type)) {
+				FindRoot (visited, path, roots, obj);
+				visited.Clear ();
+			}
+			
+			List<List<int>> res = new List<List<int>> ();
+			res.AddRange (roots.Values);
+			return res;
+		}
+		
+		void FindRoot (Dictionary<int,int> visited, List<int> path, Dictionary<int,List<int>> roots, int obj)
+		{
+			if (visited.ContainsKey (obj))
+				return;
+			visited [obj] = obj;
+			path.Add (obj);
+			
+			bool hasrefs = false;
+			foreach (int oref in GetReferencers (obj)) {
+				hasrefs = true;
+				FindRoot (visited, path, roots, oref);
+			}
+			
+			if (!hasrefs) {
+				// A root
+				if (!roots.ContainsKey (obj)) {
+					roots [obj] = new List<int> (path);
+				} else {
+					List<int> ep = roots [obj];
+					if (ep.Count > path.Count)
+						roots [obj] = new List<int> (path);
+				}
+			}
+			path.RemoveAt (path.Count - 1);
+		}		
+		
 		public int GetTypeCount ()
 		{
 			return (int) numTypes;
