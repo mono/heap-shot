@@ -5,15 +5,14 @@ using Gtk;
 
 namespace HeapShot.Gui
 {
-	public class SelectProcessDialog : Gtk.Dialog
+	public partial class SelectProcessDialog : Gtk.Dialog
 	{
-		protected Gtk.TreeView list;
 		ListStore store;
 		int pid;
 
 		public SelectProcessDialog()
 		{
-			Stetic.Gui.Build(this, typeof(HeapShot.Gui.SelectProcessDialog));
+			Build ();
 			store = new ListStore (typeof(string), typeof(string));
 			list.Model = store;
 			list.AppendColumn ("PID", new Gtk.CellRendererText (), "text", 0);

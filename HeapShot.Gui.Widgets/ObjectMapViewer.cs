@@ -8,15 +8,8 @@ using HeapShot.Reader;
 
 namespace HeapShot.Gui.Widgets
 {
-	public class ObjectMapViewer : Gtk.Bin
+	public partial class ObjectMapViewer : Gtk.Bin
 	{
-		protected Gtk.TreeView fileList;
-		protected Gtk.Label labelName;
-		protected Gtk.Label labelCount;
-		protected Gtk.Label labelMemory;
-		protected HeapShot.Gui.Widgets.ReferenceTreeViewer allObjectsTree;
-		protected Gtk.Notebook notebook;
-		
 		ListStore fileStore;
 		ObjectMapReader baseMap;
 		ArrayList difs = new ArrayList ();
@@ -24,7 +17,7 @@ namespace HeapShot.Gui.Widgets
 		
 		public ObjectMapViewer()
 		{
-			Stetic.Gui.Build(this, typeof(HeapShot.Gui.Widgets.ObjectMapViewer));
+			Build ();
 			fileStore = new Gtk.ListStore (typeof(object), typeof(string), typeof(bool));
 			fileList.Model = fileStore;
 			Gtk.CellRendererToggle ctog = new Gtk.CellRendererToggle ();

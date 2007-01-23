@@ -227,9 +227,6 @@ namespace HeapShot.Reader {
 
 		private bool ReadLogFileChunk (BinaryReader reader)
 		{
-
-			// FIXME: This will fail on truncated outfiles
-
 			byte tag = reader.ReadByte ();
 
 			switch (tag) {

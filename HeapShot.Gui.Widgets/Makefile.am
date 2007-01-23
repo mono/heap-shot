@@ -7,8 +7,10 @@ TARGET = HeapShot.Gui.Widgets.dll
 CSFILES = 			\
 	AssemblyInfo.cs		\
 	ObjectMapViewer.cs		\
+	ReferenceTreeViewer.cs \
 	gtk-gui/generated.cs		\
-	ReferenceTreeViewer.cs
+	gtk-gui/HeapShot.Gui.Widgets.ObjectMapViewer.cs		\
+	gtk-gui/HeapShot.Gui.Widgets.ReferenceTreeViewer.cs
 
 RES = gtk-gui/objects.xml \
 	gtk-gui/gui.stetic \
@@ -16,7 +18,7 @@ RES = gtk-gui/objects.xml \
 	field.png
 
 SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
-RES_CSFLAGS = $(foreach res, $(RES), -resource:$(srcdir)/$(res),$(res))
+RES_CSFLAGS = $(foreach res, $(RES), -resource:$(srcdir)/$(res))
 
 $(TARGET): $(SRCDIR_CSFILES) $(RES)
 	$(CSC) -out:$@ $(CSFLAGS) $(RES_CSFLAGS) $(SRCDIR_CSFILES)

@@ -1,3 +1,27 @@
+2007-01-23  Lluis Sanchez Gual <lluis@novell.com> 
+
+	* HeapShot.Gui.Widgets/HeapShot.Gui.Widgets.mdp,
+	  HeapShot.Gui.Widgets/Makefile.am, HeapShot.Gui/Makefile.am,
+	  HeapShot.Gui/HeapShot.Gui.mdp: Added new files.
+	* HeapShot.Gui.Widgets/ReferenceTreeViewer.cs: Added one new column
+	  that shows the amount of memory indirectly hold by object
+	  references. Show a tooltip in each cell which explains the meaning
+	  of each number.
+	* HeapShot.Gui.Widgets/gtk-gui/generated.cs,
+	  HeapShot.Gui.Widgets/gtk-gui/gui.stetic,
+	  HeapShot.Gui/gtk-gui/generated.cs, HeapShot.Gui/gtk-gui/gui.stetic:
+	  Updated.
+	* HeapShot.Gui.Widgets/gtk-gui/HeapShot.Gui.Widgets.ReferenceTreeViewer.cs,
+	  HeapShot.Gui.Widgets/gtk-gui/HeapShot.Gui.Widgets.ObjectMapViewer.cs,
+	  HeapShot.Gui/gtk-gui/HeapShot.Gui.SelectProcessDialog.cs,
+	  HeapShot.Gui/gtk-gui/MainWindow.cs: New partial classes.
+	* HeapShot.Gui.Widgets/ObjectMapViewer.cs, HeapShot.Gui/MainWindow.cs,
+	  HeapShot.Gui/SelectProcessDialog.cs: Changed to partial class
+	  model.
+	* HeapShot.Reader/ReferenceNode.cs: Added support for a new field:
+	  amount of memory indirectly hold by object references.
+	* HeapShot.Reader/ObjectMapFileReader.cs: Removed fixme.
+
 2006-11-22  Lluis Sanchez Gual <lluis@novell.com> 
 
 	* profiler/outfile-writer.c, profiler/heap-shot.c: Scan the whole type

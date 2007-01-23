@@ -3,15 +3,14 @@ using Gtk;
 using HeapShot.Gui;
 using HeapShot.Reader;
 
-public class MainWindow: Gtk.Window
+public partial class MainWindow: Gtk.Window
 {
-	protected HeapShot.Gui.Widgets.ObjectMapViewer viewer;
 	public int processId = -1;
 	string lastFolder;
 	
 	public MainWindow (): base ("")
 	{
-		Stetic.Gui.Build (this, typeof(MainWindow));
+		Build ();
 		viewer.Sensitive = false;
 	}
 	

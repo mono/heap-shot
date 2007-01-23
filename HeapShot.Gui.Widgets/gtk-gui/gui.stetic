@@ -1,5 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <stetic-interface>
+  <import>
+    <widget-library name="../bin/Debug/HeapShot.Gui.Widgets.dll" />
+  </import>
   <icon-factory>
     <icon-set id="class">
       <source>
@@ -17,23 +20,20 @@
     <property name="Events">ButtonPressMask</property>
     <child>
       <widget class="Gtk.HBox" id="hbox3">
-        <property name="Spacing">6</property>
         <property name="MemberName" />
-        <property name="Events">0</property>
+        <property name="Spacing">6</property>
         <child>
           <widget class="Gtk.ScrolledWindow" id="scrolledwindow2">
+            <property name="MemberName" />
+            <property name="CanFocus">True</property>
             <property name="VscrollbarPolicy">Automatic</property>
             <property name="HscrollbarPolicy">Never</property>
             <property name="ShadowType">In</property>
-            <property name="MemberName" />
-            <property name="CanFocus">True</property>
-            <property name="Events">0</property>
             <child>
               <widget class="Gtk.TreeView" id="fileList">
-                <property name="HeadersVisible">False</property>
                 <property name="MemberName">fileList</property>
                 <property name="CanFocus">True</property>
-                <property name="Events">0</property>
+                <property name="HeadersVisible">False</property>
               </widget>
             </child>
           </widget>
@@ -46,25 +46,22 @@
         </child>
         <child>
           <widget class="Gtk.Notebook" id="notebook">
-            <property name="Scrollable">True</property>
             <property name="MemberName">notebook</property>
             <property name="CanFocus">True</property>
-            <property name="Events">0</property>
+            <property name="Scrollable">True</property>
             <child>
               <widget class="Gtk.Table" id="table1">
+                <property name="MemberName" />
                 <property name="NRows">3</property>
                 <property name="NColumns">2</property>
                 <property name="RowSpacing">6</property>
                 <property name="ColumnSpacing">6</property>
                 <property name="BorderWidth">12</property>
-                <property name="MemberName" />
-                <property name="Events">0</property>
                 <child>
                   <widget class="Gtk.Label" id="label3">
-                    <property name="LabelProp" translatable="yes" context="yes" comments="">|Name:</property>
-                    <property name="Xalign">0</property>
                     <property name="MemberName" />
-                    <property name="Events">0</property>
+                    <property name="Xalign">0</property>
+                    <property name="LabelProp" translatable="yes" context="yes" comments="">|Name:</property>
                   </widget>
                   <packing>
                     <property name="AutoSize">True</property>
@@ -80,10 +77,9 @@
                 </child>
                 <child>
                   <widget class="Gtk.Label" id="label4">
-                    <property name="LabelProp" translatable="yes" context="yes" comments="">|Object count:</property>
-                    <property name="Xalign">0</property>
                     <property name="MemberName" />
-                    <property name="Events">0</property>
+                    <property name="Xalign">0</property>
+                    <property name="LabelProp" translatable="yes" context="yes" comments="">|Object count:</property>
                   </widget>
                   <packing>
                     <property name="TopAttach">1</property>
@@ -101,10 +97,9 @@
                 </child>
                 <child>
                   <widget class="Gtk.Label" id="label5">
-                    <property name="LabelProp" translatable="yes" context="yes" comments="">|Total memory:</property>
-                    <property name="Xalign">0</property>
                     <property name="MemberName" />
-                    <property name="Events">0</property>
+                    <property name="Xalign">0</property>
+                    <property name="LabelProp" translatable="yes" context="yes" comments="">|Total memory:</property>
                   </widget>
                   <packing>
                     <property name="TopAttach">2</property>
@@ -121,32 +116,10 @@
                   </packing>
                 </child>
                 <child>
-                  <widget class="Gtk.Label" id="labelName">
-                    <property name="LabelProp" />
-                    <property name="Xalign">0</property>
-                    <property name="MemberName">labelName</property>
-                    <property name="Events">0</property>
-                  </widget>
-                  <packing>
-                    <property name="LeftAttach">1</property>
-                    <property name="RightAttach">2</property>
-                    <property name="AutoSize">True</property>
-                    <property name="XOptions">Fill</property>
-                    <property name="YOptions">Fill</property>
-                    <property name="XExpand">False</property>
-                    <property name="XFill">True</property>
-                    <property name="XShrink">False</property>
-                    <property name="YExpand">False</property>
-                    <property name="YFill">True</property>
-                    <property name="YShrink">False</property>
-                  </packing>
-                </child>
-                <child>
                   <widget class="Gtk.Label" id="labelCount">
-                    <property name="LabelProp" />
-                    <property name="Xalign">0</property>
                     <property name="MemberName">labelCount</property>
-                    <property name="Events">0</property>
+                    <property name="Xalign">0</property>
+                    <property name="LabelProp" />
                   </widget>
                   <packing>
                     <property name="TopAttach">1</property>
@@ -166,14 +139,33 @@
                 </child>
                 <child>
                   <widget class="Gtk.Label" id="labelMemory">
-                    <property name="LabelProp" />
-                    <property name="Xalign">0</property>
                     <property name="MemberName">labelMemory</property>
-                    <property name="Events">0</property>
+                    <property name="Xalign">0</property>
+                    <property name="LabelProp" />
                   </widget>
                   <packing>
                     <property name="TopAttach">2</property>
                     <property name="BottomAttach">3</property>
+                    <property name="LeftAttach">1</property>
+                    <property name="RightAttach">2</property>
+                    <property name="AutoSize">True</property>
+                    <property name="XOptions">Fill</property>
+                    <property name="YOptions">Fill</property>
+                    <property name="XExpand">False</property>
+                    <property name="XFill">True</property>
+                    <property name="XShrink">False</property>
+                    <property name="YExpand">False</property>
+                    <property name="YFill">True</property>
+                    <property name="YShrink">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="Gtk.Label" id="labelName">
+                    <property name="MemberName">labelName</property>
+                    <property name="Xalign">0</property>
+                    <property name="LabelProp" />
+                  </widget>
+                  <packing>
                     <property name="LeftAttach">1</property>
                     <property name="RightAttach">2</property>
                     <property name="AutoSize">True</property>
@@ -194,9 +186,8 @@
             </child>
             <child>
               <widget class="Gtk.Label" id="label9">
-                <property name="LabelProp">Summary</property>
                 <property name="MemberName" />
-                <property name="Events">0</property>
+                <property name="LabelProp">Summary</property>
               </widget>
               <packing>
                 <property name="type">tab</property>
@@ -204,8 +195,8 @@
             </child>
             <child>
               <widget class="HeapShot.Gui.Widgets.ReferenceTreeViewer" id="allObjectsTree">
-                <property name="Events">ButtonPressMask</property>
                 <property name="MemberName">allObjectsTree</property>
+                <property name="Events">ButtonPressMask</property>
                 <property name="InverseReferences">False</property>
               </widget>
               <packing>
@@ -215,9 +206,8 @@
             </child>
             <child>
               <widget class="Gtk.Label" id="label2">
-                <property name="LabelProp">All objects</property>
                 <property name="MemberName" />
-                <property name="Events">0</property>
+                <property name="LabelProp">All objects</property>
               </widget>
               <packing>
                 <property name="type">tab</property>
@@ -237,23 +227,23 @@
     <property name="Events">ButtonPressMask</property>
     <child>
       <widget class="Gtk.VBox" id="vbox1">
+        <property name="MemberName" />
         <property name="Spacing">6</property>
         <property name="BorderWidth">6</property>
-        <property name="MemberName" />
-        <property name="Events">0</property>
         <child>
           <widget class="Gtk.ScrolledWindow" id="scrolledwindow1">
+            <property name="MemberName" />
+            <property name="CanFocus">True</property>
             <property name="VscrollbarPolicy">Automatic</property>
             <property name="HscrollbarPolicy">Automatic</property>
             <property name="ShadowType">In</property>
-            <property name="MemberName" />
-            <property name="CanFocus">True</property>
-            <property name="Events">0</property>
             <child>
               <widget class="Gtk.TreeView" id="treeview">
                 <property name="MemberName">treeview</property>
                 <property name="CanFocus">True</property>
-                <property name="Events">0</property>
+                <property name="Events">PointerMotionMask, LeaveNotifyMask</property>
+                <signal name="MotionNotifyEvent" handler="OnTreeviewMotionNotifyEvent" />
+                <signal name="LeaveNotifyEvent" handler="OnTreeviewLeaveNotifyEvent" />
               </widget>
             </child>
           </widget>
@@ -264,21 +254,18 @@
         </child>
         <child>
           <widget class="Gtk.HBox" id="hbox1">
-            <property name="Spacing">6</property>
             <property name="MemberName" />
-            <property name="Events">0</property>
+            <property name="Spacing">6</property>
             <child>
               <widget class="Gtk.HBox" id="boxFilter">
-                <property name="Spacing">3</property>
                 <property name="MemberName">boxFilter</property>
-                <property name="Events">0</property>
+                <property name="Spacing">3</property>
                 <child>
                   <widget class="Gtk.Entry" id="entryFilter">
-                    <property name="IsEditable">True</property>
-                    <property name="InvisibleChar">●</property>
                     <property name="MemberName">entryFilter</property>
                     <property name="CanFocus">True</property>
-                    <property name="Events">0</property>
+                    <property name="IsEditable">True</property>
+                    <property name="InvisibleChar">●</property>
                     <signal name="Activated" handler="OnEntryFilterActivated" />
                   </widget>
                   <packing>
@@ -288,12 +275,11 @@
                 </child>
                 <child>
                   <widget class="Gtk.Button" id="buttonFilter">
+                    <property name="MemberName" />
+                    <property name="CanFocus">True</property>
                     <property name="Type">TextOnly</property>
                     <property name="Label">Filter</property>
                     <property name="IsDialogButton">False</property>
-                    <property name="MemberName" />
-                    <property name="CanFocus">True</property>
-                    <property name="Events">0</property>
                     <signal name="Clicked" handler="OnButtonFilterClicked" />
                   </widget>
                   <packing>
@@ -311,12 +297,11 @@
             </child>
             <child>
               <widget class="Gtk.CheckButton" id="checkInverse">
+                <property name="MemberName">checkInverse</property>
+                <property name="CanFocus">True</property>
                 <property name="Label">Inverse references</property>
                 <property name="DrawIndicator">True</property>
                 <property name="HasLabel">True</property>
-                <property name="MemberName">checkInverse</property>
-                <property name="CanFocus">True</property>
-                <property name="Events">0</property>
                 <signal name="Clicked" handler="OnCheckInverseClicked" />
               </widget>
               <packing>

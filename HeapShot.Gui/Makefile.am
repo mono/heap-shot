@@ -10,6 +10,8 @@ CSFILES = 			\
 	Main.cs		\
 	MainWindow.cs		\
 	gtk-gui/generated.cs		\
+	gtk-gui/HeapShot.Gui.SelectProcessDialog.cs		\
+	gtk-gui/MainWindow.cs		\
 	SelectProcessDialog.cs
 
 bin_SCRIPTS =			\
