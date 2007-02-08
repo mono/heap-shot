@@ -1,3 +1,18 @@
+2007-02-08  Lluis Sanchez Gual <lluis@novell.com> 
+
+	* profiler/Makefile.am.mdp, heap-shot.mds: Added new profiler project.
+	* profiler/Makefile.am, HeapShot.Gui.Widgets/HeapShot.Gui.Widgets.mdp,
+	  HeapShot.Gui.Widgets/Makefile.am, HeapShot/Makefile.am,
+	  HeapShot/HeapShot.mdp, HeapShot.Reader/Makefile.am,
+	  HeapShot.Reader/HeapShot.Reader.mdp, HeapShot.Gui/Makefile.am,
+	  HeapShot.Gui/HeapShot.Gui.mdp: Synchronized makefiles and
+	  MonoDevelop projects.
+	* HeapShot.Gui.Widgets/gtk-gui/objects.xml,
+	  HeapShot.Gui.Widgets/gtk-gui/gui.stetic: flush.
+	* configure.in: Added package check.
+	* HeapShot.Gui/gtk-gui/generated.cs, HeapShot.Gui/gtk-gui/gui.stetic:
+	  Flush.
+
 2007-01-23  Lluis Sanchez Gual <lluis@novell.com> 
 
 	* HeapShot.Gui.Widgets/HeapShot.Gui.Widgets.mdp,

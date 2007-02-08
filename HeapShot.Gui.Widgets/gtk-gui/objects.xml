@@ -9,8 +9,8 @@
     <signals>
       <itemgroup ref="Gtk.Widget" />
       <itemgroup label="ReferenceTreeViewer Signals">
-        <signal name="TypeActivated" />
         <signal name="ProgressEvent" />
+        <signal name="TypeActivated" />
       </itemgroup>
     </signals>
   </object>

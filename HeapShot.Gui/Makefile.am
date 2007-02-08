@@ -1,26 +1,36 @@
 
 CSC = gmcs -debug
-CSFLAGS = -target:exe  -r:../HeapShot.Reader/HeapShot.Reader.dll  -r:../HeapShot.Gui.Widgets/HeapShot.Gui.Widgets.dll -pkg:gtk-sharp-2.0
+CSFLAGS = -target:exe
 
 TARGET = HeapShot.Gui.exe
 WRAPPER = heap-shot-gui
 
-CSFILES = 			\
-	AssemblyInfo.cs		\
-	Main.cs		\
-	MainWindow.cs		\
-	gtk-gui/generated.cs		\
-	gtk-gui/HeapShot.Gui.SelectProcessDialog.cs		\
-	gtk-gui/MainWindow.cs		\
+CSFILES =  \
+	AssemblyInfo.cs \
+	gtk-gui/generated.cs \
+	gtk-gui/HeapShot.Gui.SelectProcessDialog.cs \
+	gtk-gui/MainWindow.cs \
+	Main.cs \
+	MainWindow.cs \
 	SelectProcessDialog.cs
 
 bin_SCRIPTS =			\
 	$(WRAPPER)
+	
+
+REFS =  \
+	-r:Mono.Posix \
+	-r:System \
+	-pkg:gtk-sharp-2.0 \
+	-r:../HeapShot.Gui.Widgets/HeapShot.Gui.Widgets.dll \
+	-r:$(top_builddir)/HeapShot.Reader/HeapShot.Reader.dll
+
+RES = gtk-gui/gui.stetic
 
 SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
 
 $(TARGET): $(SRCDIR_CSFILES)
-	$(CSC) -out:$@ $(CSFLAGS) $^
+	$(CSC) -out:$@ $(CSFLAGS) $(REFS) $^
 
 all: $(TARGET) $(WRAPPER)
 

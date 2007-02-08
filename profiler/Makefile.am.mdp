@@ -1,0 +1,19 @@
+<Project name="profiler" fileversion="2.0" ctype="MakefileProject">
+  <Configurations />
+  <DeployTargets />
+  <Contents>
+    <File name="./outfile-writer.h" subtype="Code" buildaction="Compile" />
+    <File name="./outfile-writer.c" subtype="Code" buildaction="Compile" />
+    <File name="./heap-shot.c" subtype="Code" buildaction="Compile" />
+  </Contents>
+  <References />
+  <MonoDevelop.Autotools.MakefileInfo IntegrationEnabled="True" RelativeMakefileName="./Makefile.am" ExecuteTargetName="" OutputDirVar="" AssemblyNameVar="">
+    <BuildFilesVar Sync="True" Name="libmono_profiler_heap_shot_la_SOURCES" />
+    <DeployFilesVar />
+    <ResourcesVar />
+    <OthersVar />
+    <GacRefVar />
+    <AsmRefVar />
+    <ProjectRefVar />
+  </MonoDevelop.Autotools.MakefileInfo>
+</Project>

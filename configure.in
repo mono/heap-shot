@@ -5,6 +5,8 @@ AM_PROG_LIBTOOL
 
 PKG_CHECK_MODULES(PROFILER, mono glib-2.0)
 
+PKG_CHECK_MODULES(GTK_SHARP, gtk-sharp-2.0)
+
 AC_PATH_PROG(MCS, mcs)
 AC_PATH_PROG(MONO, mono)
 pkglibdir=$prefix/lib/heap-shot

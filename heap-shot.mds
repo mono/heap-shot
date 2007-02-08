@@ -5,25 +5,28 @@
       <Entry build="True" name="HeapShot.Reader" configuration="Debug" />
       <Entry build="True" name="HeapShot.Gui" configuration="Debug" />
       <Entry build="True" name="HeapShot" configuration="Debug" />
+      <Entry build="True" name="profiler" configuration="Default" />
     </Configuration>
     <Configuration name="Release" ctype="CombineConfiguration">
       <Entry build="True" name="HeapShot.Gui.Widgets" configuration="Release" />
       <Entry build="True" name="HeapShot.Reader" configuration="Release" />
       <Entry build="True" name="HeapShot.Gui" configuration="Release" />
       <Entry build="True" name="HeapShot" configuration="Release" />
+      <Entry build="True" name="profiler" configuration="Default" />
     </Configuration>
   </Configurations>
-  <DeployTargets />
   <StartMode startupentry="HeapShot.Gui" single="True">
     <Execute type="None" entry="HeapShot.Gui.Widgets" />
     <Execute type="None" entry="HeapShot.Reader" />
     <Execute type="None" entry="HeapShot.Gui" />
     <Execute type="None" entry="HeapShot" />
+    <Execute type="None" entry="profiler" />
   </StartMode>
   <Entries>
     <Entry filename="./HeapShot.Gui.Widgets/HeapShot.Gui.Widgets.mdp" />
     <Entry filename="./HeapShot.Reader/HeapShot.Reader.mdp" />
     <Entry filename="./HeapShot.Gui/HeapShot.Gui.mdp" />
     <Entry filename="./HeapShot/HeapShot.mdp" />
+    <Entry filename="./profiler/profiler.mdp" />
   </Entries>
 </Combine>

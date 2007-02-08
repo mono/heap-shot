@@ -5,17 +5,23 @@ CSFLAGS = -target:exe
 TARGET = HeapShot.exe
 WRAPPER = heap-shot
 
-CSFILES = 			\
-	HeapShot.cs		\
+CSFILES =  \
+	HeapShot.cs \
 	ReferenceTreeReport.cs
+	
 
+RES = 
 bin_SCRIPTS =			\
 	$(WRAPPER)
 
 SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
 
+REFS =  \
+	-r:System \
+	-r:../HeapShot.Reader/bin/Debug/HeapShot.Reader.dll
+
 $(TARGET): $(SRCDIR_CSFILES)
-	$(CSC) -out:$@ -r:../HeapShot.Reader/HeapShot.Reader.dll $(CSFLAGS) $^
+	$(CSC) -out:$@ $(CSFLAGS) $(REFS) $^
 
 all: $(TARGET) $(WRAPPER)
 

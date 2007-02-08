@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <stetic-interface>
   <import>
-    <widget-library name="../bin/Debug/HeapShot.Gui.Widgets.dll" />
+    <widget-library name="../HeapShot.Gui.Widgets.dll" />
   </import>
   <icon-factory>
     <icon-set id="class">
@@ -61,7 +61,7 @@
                   <widget class="Gtk.Label" id="label3">
                     <property name="MemberName" />
                     <property name="Xalign">0</property>
-                    <property name="LabelProp" translatable="yes" context="yes" comments="">|Name:</property>
+                    <property name="LabelProp" translatable="yes">Name:</property>
                   </widget>
                   <packing>
                     <property name="AutoSize">True</property>
@@ -79,7 +79,7 @@
                   <widget class="Gtk.Label" id="label4">
                     <property name="MemberName" />
                     <property name="Xalign">0</property>
-                    <property name="LabelProp" translatable="yes" context="yes" comments="">|Object count:</property>
+                    <property name="LabelProp" translatable="yes">Object count:</property>
                   </widget>
                   <packing>
                     <property name="TopAttach">1</property>
@@ -99,7 +99,7 @@
                   <widget class="Gtk.Label" id="label5">
                     <property name="MemberName" />
                     <property name="Xalign">0</property>
-                    <property name="LabelProp" translatable="yes" context="yes" comments="">|Total memory:</property>
+                    <property name="LabelProp" translatable="yes">Total memory:</property>
                   </widget>
                   <packing>
                     <property name="TopAttach">2</property>
