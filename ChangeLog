@@ -1,3 +1,9 @@
+2007-04-18  Alp Toker  <alp@atoker.com>
+
+	* HeapShot.Reader/ReferenceNode.cs: Build fix. Old gmcs allowed
+	private generic arguments for a public Dictionary`2 so this wasn't
+	noticed.
+
 2007-02-12  Lluis Sanchez Gual <lluis@novell.com> 
 
 	* profiler/profiler.mdp, profiler/Makefile.am.mdp: Add the correct MD

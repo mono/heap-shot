@@ -218,7 +218,7 @@ namespace HeapShot.Reader
 		public string FiledName;
 	}
 	
-	struct RootRefInfo
+	public struct RootRefInfo
 	{
 		public int References;
 		public uint Memory;
