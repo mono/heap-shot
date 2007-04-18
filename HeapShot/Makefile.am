@@ -18,7 +18,7 @@ SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
 
 REFS =  \
 	-r:System \
-	-r:../HeapShot.Reader/bin/Debug/HeapShot.Reader.dll
+	-r:../HeapShot.Reader/HeapShot.Reader.dll
 
 $(TARGET): $(SRCDIR_CSFILES)
 	$(CSC) -out:$@ $(CSFLAGS) $(REFS) $^
