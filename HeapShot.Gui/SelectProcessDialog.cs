@@ -27,12 +27,6 @@ namespace HeapShot.Gui
 			get { return pid; }
 		}
 
-		public override void Dispose ()
-		{
-			base.Dispose ();
-			Destroy ();
-		}
-
 		protected virtual void OnResponse(object o, Gtk.ResponseArgs args)
 		{
 			Gtk.TreeModel foo;

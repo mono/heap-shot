@@ -50,11 +50,14 @@ public partial class MainWindow: Gtk.Window
 	protected virtual void OnMemorySnapshotActivated(object sender, System.EventArgs e)
 	{
 		if (processId == -1) {
-			using (SelectProcessDialog dlg = new SelectProcessDialog ()) {
+			SelectProcessDialog dlg = new SelectProcessDialog ();
+			try {
 				if (dlg.Run () == (int) Gtk.ResponseType.Ok) {
 					processId = dlg.ProcessId;
 				} else
 					return;
+			} finally {
+				dlg.Destroy ();
 			}
 		}
 		ObjectMapReader map = ObjectMapReader.CreateProcessSnapshot (processId);

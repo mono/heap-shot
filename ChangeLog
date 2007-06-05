@@ -1,3 +1,8 @@
+2007-06-05  Ankit Jain  <jankit@novell.com>
+
+	* HeapShot.Gui/MainWindow.cs: Explicitly Destroy SelectProcessDialog.
+	* HeapShot.Gui/SelectProcessDialog.cs (Dispose): Remove.
+
 2007-04-18  Alp Toker  <alp@atoker.com>
 
 	* HeapShot.Reader/ReferenceNode.cs: Build fix. Old gmcs allowed
