@@ -1,3 +1,7 @@
+2007-09-28  Ankit Jain  <jankit@novell.com>
+
+	* profiler/profiler.mdp: Set the compiler regex to gcc.
+
 2007-06-05  Ankit Jain  <jankit@novell.com>
 
 	* HeapShot.Gui/MainWindow.cs: Explicitly Destroy SelectProcessDialog.
