@@ -40,7 +40,11 @@ namespace HeapShot {
 			bool roots = false;
 			
 			if (args.Length == 0) {
-				Console.WriteLine ("Map file name missing.");
+				Console.Error.WriteLine ("Usage is: heap-shot MAP_FILE [-s map-file-to-compare] -i -r [Type [MaxLevels]].");
+				Console.Error.WriteLine ("    -s MAP_FILE    The source map file to compare against");
+				Console.Error.WriteLine ("    -i             Invert references");
+				Console.Error.WriteLine ("    -r             Print roots");
+				
 				return;
 			}
 			
