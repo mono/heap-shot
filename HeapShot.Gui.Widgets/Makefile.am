@@ -13,10 +13,10 @@ CSFILES =  \
 	ReferenceTreeViewer.cs
 
 RES =  \
-	class.png \
-	field.png \
-	gtk-gui/gui.stetic \
-	gtk-gui/objects.xml
+	$(srcdir)/class.png \
+	$(srcdir)/field.png \
+	$(srcdir)/gtk-gui/gui.stetic \
+	$(srcdir)/gtk-gui/objects.xml
 
 REFS =  \
 	-r:System \
