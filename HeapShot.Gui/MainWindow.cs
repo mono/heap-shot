@@ -49,6 +49,14 @@ public partial class MainWindow: Gtk.Window
 
 	protected virtual void OnMemorySnapshotActivated(object sender, System.EventArgs e)
 	{
+		if (processId != -1) {
+			try {
+				System.Diagnostics.Process.GetProcessById (processId);
+			} 
+			catch {
+				processId =-1;
+			}
+		}
 		if (processId == -1) {
 			SelectProcessDialog dlg = new SelectProcessDialog ();
 			try {

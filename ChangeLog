@@ -1,3 +1,8 @@
+2008-10-19  Jordi Mas i Hernandez <jordimash@gmail.com>
+
+	* HeapShot.Gui/MainWindow.cs: If the process is no longer valid, ask 
+	the user for a new process instead of hanging.
+
 2008-03-06  Andrew Jorgensen  <ajorgensen@novell.com>
 
 	* HeapShot.Gui.Widgets/Makefile.am: distcheck fixes (reference srcdir
