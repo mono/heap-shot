@@ -1,3 +1,13 @@
+
+Fri Mar 19 09:24:40 CET 2010 Paolo Molaro <lupus@ximian.com>
+
+	* profiler/heap-shot.c: reorder initialization: first the profiler
+	is installe and after that the event callbacks are registered and
+	activated. Added some notes on the rest of the code.
+	* configure.in: check for mono-2.
+	* HeapShot.Gui/SelectProcessDialog.cs: limit the process list to
+	processes runnig mono.
+
 2008-10-19  Jordi Mas i Hernandez <jordimash@gmail.com>
 
 	* HeapShot.Gui/MainWindow.cs: If the process is no longer valid, ask 

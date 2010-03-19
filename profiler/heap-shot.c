@@ -5,6 +5,10 @@
  *
  * Copyright (C) 2005 Novell, Inc.
  *
+ * This profiler is unsafe: it does in signal context almost everything
+ * that must not be done there, like taking locks, running a GC etc.
+ * It takes a lock in heap_shot_gc_func(), which can cause a deadlock.
+ * It doesn't deal with moving objects.
  */
 
 /*
@@ -397,13 +401,13 @@ mono_profiler_startup (const char *desc)
 
 	g_print ("*** Running with heap-shot ***\n");
 	
-	mono_profiler_install_allocation (heap_shot_alloc_func);
-	mono_profiler_install_gc (heap_shot_gc_func, NULL);
-	mono_profiler_install_class (NULL, heap_shot_load_class_func, heap_shot_unload_class_func, NULL);
-	mono_profiler_set_events (MONO_PROFILE_ALLOCATIONS | MONO_PROFILE_GC | MONO_PROFILE_CLASS_EVENTS);
-	
 	p = create_mono_profiler (outfilename);
 	
 	mono_profiler_install (p, NULL);
+	mono_profiler_install_allocation (heap_shot_alloc_func);
+	mono_profiler_install_gc (heap_shot_gc_func, NULL);
+	mono_profiler_install_class (NULL, heap_shot_load_class_func, heap_shot_unload_class_func, NULL);
+	
+	mono_profiler_set_events (MONO_PROFILE_ALLOCATIONS | MONO_PROFILE_GC | MONO_PROFILE_CLASS_EVENTS);
 }
 

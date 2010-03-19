@@ -17,9 +17,13 @@ namespace HeapShot.Gui
 			list.Model = store;
 			list.AppendColumn ("PID", new Gtk.CellRendererText (), "text", 0);
 			list.AppendColumn ("Process", new Gtk.CellRendererText (), "text", 1);
-			
-			foreach (Process proc in Process.GetProcesses ()) {
-				store.AppendValues (proc.Id.ToString(), proc.ProcessName);
+
+			PerformanceCounterCategory p = new PerformanceCounterCategory (".NET CLR JIT");
+
+			foreach (string proc in p.GetInstanceNames ()) {
+				int pos = proc.IndexOf ('/');
+				if (pos != -1)
+					store.AppendValues (proc.Substring (0, pos), proc);
 			}
 		}
 		
