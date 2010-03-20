@@ -1,4 +1,10 @@
 
+2010-03-20 Gonzalo Paniagua Javier <gonzalo@novell.com>
+
+	* profiler/heap-shot.c: add a couple of #defines here since
+	mono-mutex.h is not installed any more. Remove warnings.
+	* autogen.sh: remove unused options.
+
 Fri Mar 19 09:24:40 CET 2010 Paolo Molaro <lupus@ximian.com>
 
 	* profiler/heap-shot.c: reorder initialization: first the profiler

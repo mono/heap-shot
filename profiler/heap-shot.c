@@ -29,8 +29,8 @@
 
 #include <string.h>
 #include <glib.h>
+#include <pthread.h>
 #include <mono/metadata/assembly.h>
-#include <mono/io-layer/mono-mutex.h>
 #include <mono/metadata/class.h>
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/object.h>
@@ -44,7 +44,13 @@
 
 #include "outfile-writer.h"
 
-//extern gboolean mono_object_is_alive (MonoObject* obj);
+typedef pthread_mutex_t mono_mutex_t;
+#define mono_mutex_init(mutex,attr) pthread_mutex_init (mutex, attr)
+#define mono_mutex_lock(mutex) pthread_mutex_lock (mutex)
+#define mono_mutex_unlock(mutex) pthread_mutex_unlock (mutex)
+G_BEGIN_DECLS
+gboolean mono_object_is_alive (MonoObject* obj);
+G_END_DECLS
 
 struct _MonoProfiler {
 	mono_mutex_t   lock;
@@ -256,7 +262,7 @@ dump_static_fields_fn (gpointer key, gpointer value, gpointer user_data)
 	MonoClass *klass = key;
 	MonoProfiler *p = ((gpointer*)user_data)[0];
 	MonoDomain *domain = ((gpointer*)user_data)[1];
-	MonoVTable *vtable;
+	MonoVTable *vtable = NULL;
 	gpointer field_value;
 	
 	if (strstr (mono_type_full_name (mono_class_get_type (klass)), "`"))
