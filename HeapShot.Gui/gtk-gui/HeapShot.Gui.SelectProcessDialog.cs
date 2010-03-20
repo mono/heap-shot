@@ -74,7 +74,7 @@ namespace HeapShot.Gui {
             this.label2.WidthRequest = 492;
             this.label2.Name = "label2";
             this.label2.Xalign = 0F;
-            this.label2.LabelProp = "<b>Warning:</b> Memory snapshots can only be taken from mono processes started with the option \"--profile=heap-shot\". If you select a process which was not started using this option, the process will be stopped.";
+            this.label2.LabelProp = "Only Mono processes started with the option <i>--profile=heap-shot</i> are listed.";
             this.label2.UseMarkup = true;
             this.label2.Wrap = true;
             this.vbox1.Add(this.label2);

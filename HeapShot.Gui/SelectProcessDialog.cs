@@ -1,6 +1,8 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
 using Gtk;
 
 namespace HeapShot.Gui
@@ -22,8 +24,14 @@ namespace HeapShot.Gui
 
 			foreach (string proc in p.GetInstanceNames ()) {
 				int pos = proc.IndexOf ('/');
-				if (pos != -1)
-					store.AppendValues (proc.Substring (0, pos), proc);
+				if (pos != -1) {
+					string process_id = proc.Substring (0, pos);
+					string [] args = GetArgs (Convert.ToInt32 (process_id));
+					if (Array.IndexOf (args, "--profile=heap-shot") == -1)
+						continue;
+					//store.AppendValues (process_id, proc);
+					store.AppendValues (process_id, String.Join (" ", args));
+				}
 			}
 		}
 		
@@ -39,6 +47,20 @@ namespace HeapShot.Gui
 				return;
 			string spid = (string) store.GetValue (iter, 0);
 			pid = int.Parse (spid);
+		}
+
+		static string [] GetArgs (int pid)
+		{
+			try {
+				string fname = "/proc/" + pid + "/cmdline";
+				string content;
+				using (StreamReader reader = new StreamReader (fname, Encoding.ASCII)) {
+					content = reader.ReadToEnd ();
+				}
+				return content.Split ('\0');
+			} catch {
+			}
+			return null;
 		}
 	}
 }

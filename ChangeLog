@@ -1,6 +1,15 @@
 
 2010-03-20 Gonzalo Paniagua Javier <gonzalo@novell.com>
 
+	* HeapShot.Gui/SelectProcessDialog.cs:
+	* HeapShot.Gui/gtk-gui/HeapShot.Gui.SelectProcessDialog.cs:
+	* HeapShot.Gui/gtk-gui/gui.stetic: only list processes that have been
+	started with --profile=heap-shot to avoid sudden death and
+	suffocation affecting unaware awesome mono programs running in your
+	desktop.
+
+2010-03-20 Gonzalo Paniagua Javier <gonzalo@novell.com>
+
 	* profiler/heap-shot.c: add a couple of #defines here since
 	mono-mutex.h is not installed any more. Remove warnings.
 	* autogen.sh: remove unused options.
