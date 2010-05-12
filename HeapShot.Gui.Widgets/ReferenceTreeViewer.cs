@@ -365,7 +365,7 @@ namespace HeapShot.Gui.Widgets
 			if (lastTipTxt != txt) {
 				HideTipWindow ();
 				tipWindow = new TipWindow (txt);
-				tipWindow.ShowAll ();
+				tipWindow.Child.ShowAll ();
 			}
 			lastTipTxt = txt;
 			

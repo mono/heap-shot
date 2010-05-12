@@ -1,0 +1,8 @@
+2010-05-11  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* ReferenceTreeViewer.cs: Don't show tooltip window before
+	  positioning it.
+
+	* class.png:
+	* field.png: New icons.
+
