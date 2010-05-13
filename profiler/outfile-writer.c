@@ -26,6 +26,7 @@
 #include <string.h>
 #include <time.h>
 
+#include <mono/metadata/debug-helpers.h>
 #include "outfile-writer.h"
 
 #define MAGIC_NUMBER 0x4eabfdd1
