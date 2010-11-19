@@ -110,57 +110,6 @@ namespace HeapShot.Reader {
  
 */
 		
-/*
-		 * Here is a visual example of how tables are filled:
-		 * 
-		 * objects: array of ObjectInfo objects (rXXX means reference to ObjectInfo with code XXX)
-		 *                     0    1    2    3    4    5
-		 *                    ---  ---  ---  ---  ---  ---
-		 * Code:              103  101  100  102  104  105
-		 * Type:               0    0    0    1    1    1
-		 * RefsIndex:          0    2    3    -    -    -
-		 * RefsCount:          2    1    1    0    0    0
-		 * InverseRefsIndex:   0    -    -    1    2    3
-		 * InverseRefsCount:   1    0    0    1    1    1
-		 *
-		 * objectCodes: sorted array of object codes, used for binary search. The found index is used to query 'objectIndices'
-		 *   0    1    2    3    4    5
-		 * [100][101][102][103][104][105]
-		 *
-		 * objectIndices: from an index found in 'objectCodes', returns an index for 'objects'
-		 *  0  1  2  3  4  5
-		 * [2][1][3][0][4][5]
-		 * 
-		 * types: array of TypeInfo objects (rXXX means reference to TypeInfo with code XXX)
-		 *    0     1
-		 * [r201][r200]
-		 * 
-		 * typeCodes: sorted array of type codes, used for binary search. The found index is used to query 'typeIndices'
-		 *   0    1
-		 * [200][201]
-		 *
-		 * typeIndices: from an index found in 'typeCodes', returns an index for 'types'
-		 *  0  1
-		 * [1][0]
-		 * 
-		 * referenceCodes: object references. ObjectInfo.RefsIndex is the position
-		 * in this array where references for an object start. ObjectInfo.RefsCount is
-		 * the number of references of the object:
-		 *   0    1    2    3
-		 * [105][104][102][103]
-		 * 
-		 * references: same as 'referenceCodes', but using object indexes instead of codes
-		 *  0  1  2  3
-		 * [5][4][3][0]
-		 * 
-		 * inverseRefs: inverse reference indexes
-		 *  0  1  2  3
-		 * [2][1][0][0]
-
- 
- 
-*/
-		
 		internal ObjectMapReader ()
 		{
 		}
@@ -249,6 +198,7 @@ namespace HeapShot.Reader {
 				var endPos = reader.BaseStream.Position + bheader.Length;
 				while (reader.BaseStream.Position < endPos) {
 					Event e = Event.Read (reader);
+					Console.WriteLine ("Event: " + e);
 					if (e is MetadataEvent)
 						ReadLogFileChunk_Type ((MetadataEvent)e);
 					else if (e is HeapEvent)
@@ -298,13 +248,13 @@ namespace HeapShot.Reader {
 			ob.Code = he.Object;
 			ob.Size = he.Size;
 			ob.RefsIndex = referenceCodes.Count;
-			ob.RefsCount = he.ObjectRefs.Length;
-			objectTypeCodes [objectsList.Count] = he.Class;
+			ob.RefsCount = he.ObjectRefs != null ? he.ObjectRefs.Length : 0;
+			objectTypeCodes.Add (he.Class);
 			totalMemory += ob.Size;
 			
 			// Read referenceCodes
 			
-			for (int n=0; n < he.ObjectRefs.Length; n++) {
+			for (int n=0; n < ob.RefsCount; n++) {
 				referenceCodes.Add (he.ObjectRefs [n]);
 				fieldReferenceCodes.Add (he.RelOffset [n]);
 			}
@@ -454,10 +404,10 @@ namespace HeapShot.Reader {
 		public Graph CreateGraph (int minInstances)
 		{
 			Graph gr = new Graph (this);
-			for (int n=0; n<numObjects; n++) {
+			for (int n=0; n<objects.Length; n++) {
 				gr.AddObject (n);
 			}
-			for (int n=0; n<numObjects; n++) {
+			for (int n=0; n<objects.Length; n++) {
 				foreach (int ob in GetReferences (n))
 					gr.AddReference (n, ob, 0);
 			}

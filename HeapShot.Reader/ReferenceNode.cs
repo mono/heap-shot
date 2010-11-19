@@ -83,7 +83,7 @@ namespace HeapShot.Reader
 			globalRefs = true;
 		}
 		
-		internal RootRefInfo AddReference (int obj, int tnode)
+		public RootRefInfo AddReference (int obj, int tnode)
 		{
 			return AddReference (-1, obj, tnode, 1, map.GetObjectSize (obj), null);
 		}
@@ -280,12 +280,8 @@ namespace HeapShot.Reader
 	public struct RootRefInfo
 	{
 		public int References;
-<<<<<<< HEAD
 		public ulong Memory;
-=======
-		public uint Memory;
 		public int TreeNode; // Used only on purged trees
->>>>>>> d47a55a... Misc improvements
 	}
 	
 	class ReferenceSorter: IComparer

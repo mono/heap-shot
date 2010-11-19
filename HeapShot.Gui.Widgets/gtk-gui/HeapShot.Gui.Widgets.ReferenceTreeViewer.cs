@@ -12,6 +12,7 @@ namespace HeapShot.Gui.Widgets
 		private global::Gtk.Entry entryFilter;
 		private global::Gtk.Button buttonFilter;
 		private global::Gtk.CheckButton checkInverse;
+		private global::Gtk.CheckButton checkPurge;
 
 		protected virtual void Build ()
 		{
@@ -80,11 +81,22 @@ namespace HeapShot.Gui.Widgets
 			w6.Position = 1;
 			w6.Expand = false;
 			w6.Fill = false;
+			// Container child hbox1.Gtk.Box+BoxChild
+			this.checkPurge = new global::Gtk.CheckButton ();
+			this.checkPurge.Sensitive = false;
+			this.checkPurge.CanFocus = true;
+			this.checkPurge.Name = "checkPurge";
+			this.checkPurge.Label = global::Mono.Unix.Catalog.GetString ("Roots only");
+			this.checkPurge.DrawIndicator = true;
+			this.checkPurge.UseUnderline = true;
+			this.hbox1.Add (this.checkPurge);
+			global::Gtk.Box.BoxChild w7 = ((global::Gtk.Box.BoxChild)(this.hbox1 [this.checkPurge]));
+			w7.Position = 2;
 			this.vbox1.Add (this.hbox1);
-			global::Gtk.Box.BoxChild w7 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.hbox1]));
-			w7.Position = 1;
-			w7.Expand = false;
-			w7.Fill = false;
+			global::Gtk.Box.BoxChild w8 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.hbox1]));
+			w8.Position = 1;
+			w8.Expand = false;
+			w8.Fill = false;
 			this.Add (this.vbox1);
 			if ((this.Child != null)) {
 				this.Child.ShowAll ();
@@ -95,6 +107,7 @@ namespace HeapShot.Gui.Widgets
 			this.entryFilter.Activated += new global::System.EventHandler (this.OnEntryFilterActivated);
 			this.buttonFilter.Clicked += new global::System.EventHandler (this.OnButtonFilterClicked);
 			this.checkInverse.Clicked += new global::System.EventHandler (this.OnCheckInverseClicked);
+			this.checkPurge.Clicked += new global::System.EventHandler (this.OnCheckPurgeClicked);
 		}
 	}
 }

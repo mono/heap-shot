@@ -50,6 +50,8 @@
     <Compile Include="LogBuffer.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="Header.cs" />
+    <Compile Include="Graph.cs" />
+    <Compile Include="IProgressListener.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

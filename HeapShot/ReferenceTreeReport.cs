@@ -100,7 +100,7 @@ namespace HeapShot {
 					// Show the tree for a type
 					ReferenceNode nod = new ReferenceNode (omap, ntype, inverse);
 					foreach (int obj in omap.GetObjectsByType (ntype)) {
-						nod.AddReference (obj);
+						nod.AddReference (obj, 0);
 					}
 					nod.Print (maxlevels);
 				}

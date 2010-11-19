@@ -43,6 +43,8 @@
     <Compile Include="gtk-gui\generated.cs" />
     <Compile Include="gtk-gui\HeapShot.Gui.Widgets.ObjectMapViewer.cs" />
     <Compile Include="gtk-gui\HeapShot.Gui.Widgets.ReferenceTreeViewer.cs" />
+    <Compile Include="gtk-gui\HeapShot.Gui.Widgets.ProgressDialog.cs" />
+    <Compile Include="ProgressDialog.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="gtk-gui\objects.xml">
