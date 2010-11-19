@@ -136,7 +136,7 @@ namespace MonoDevelop.Profiler
 			Ptr = reader.ReadSLeb128 ();
 			Obj = reader.ReadSLeb128 ();
 			Size = reader.ReadULeb128 ();
-			if (extendedInfo == TYPE_ALLOC_BT)
+			if ((extendedInfo & TYPE_ALLOC_BT) != 0)
 				Backtrace = new Backtrace (reader);
 		}
 
@@ -377,17 +377,20 @@ namespace MonoDevelop.Profiler
 		
 		// Type throw
 		public readonly long Object; // the object that was thrown as a difference from obj_base If the TYPE_EXCEPTION_BT flag is set, a backtrace follows.
+		public readonly Backtrace Backtrace;
 		
 		ExceptionEvent (BinaryReader reader, byte exinfo)
 		{
 			TimeDiff = reader.ReadULeb128 ();
-			exinfo &= TYPE_EXCEPTION_BT - 1;
-			if (exinfo == TYPE_CLAUSE) {
+			byte subtype = (byte)(exinfo & 0x70);
+			if (subtype == TYPE_CLAUSE) {
 				ClauseType = reader.ReadULeb128 ();
 				ClauseNum = reader.ReadULeb128 ();
 				Method = reader.ReadSLeb128 ();
-			} else if (exinfo == TYPE_THROW) {
+			} else if (subtype == TYPE_THROW) {
 				Object = reader.ReadSLeb128 ();
+				if ((exinfo & TYPE_EXCEPTION_BT) == TYPE_EXCEPTION_BT)
+					Backtrace = new Backtrace (reader);
 			}
 		}
 
@@ -408,6 +411,7 @@ namespace MonoDevelop.Profiler
 		public const int MONO_PROFILER_MONITOR_CONTENTION = 1;
 		public const int MONO_PROFILER_MONITOR_DONE = 2;
 		public const int MONO_PROFILER_MONITOR_FAIL = 3;
+		public const byte TYPE_MONITOR_BT = 1 << 7;
 		
 		public readonly long Object; //  the lock object as a difference from obj_base
 		public readonly Backtrace Backtrace;
@@ -416,7 +420,8 @@ namespace MonoDevelop.Profiler
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			Object = reader.ReadSLeb128 ();
-			if (exinfo == MONO_PROFILER_MONITOR_CONTENTION) {
+			byte ev = (byte)((exinfo >> 4) & 0x3);
+			if (ev == MONO_PROFILER_MONITOR_CONTENTION && (exinfo & TYPE_MONITOR_BT) == TYPE_MONITOR_BT) {
 				Backtrace = new Backtrace (reader);
 			}
 		}
