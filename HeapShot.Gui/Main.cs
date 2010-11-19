@@ -9,7 +9,7 @@ namespace HeapShot.Gui
 		public static void Main (string[] args)
 		{
 			Application.Init ();
-			MainWindow win = new MainWindow ();
+			MainWindow win = new MainWindow (args);
 			win.Show ();
 			Application.Run ();
 		}

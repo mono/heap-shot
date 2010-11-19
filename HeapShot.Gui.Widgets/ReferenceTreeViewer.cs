@@ -3,6 +3,7 @@ using System;
 using Gtk;
 using Gdk;
 using HeapShot.Reader;
+using System.ComponentModel;
 
 namespace HeapShot.Gui.Widgets
 {
@@ -70,7 +71,7 @@ namespace HeapShot.Gui.Widgets
 			
 			treeview.TestExpandRow += new Gtk.TestExpandRowHandler (OnTestExpandRow);
 			treeview.RowActivated += new Gtk.RowActivatedHandler (OnNodeActivated);
-			treeview.AppendColumn (new Gtk.TreeViewColumn());
+//			treeview.AppendColumn (new Gtk.TreeViewColumn());
 			
 			int nc = 0;
 			foreach (TreeViewColumn c in treeview.Columns) {
@@ -80,6 +81,20 @@ namespace HeapShot.Gui.Widgets
 			store.SetSortColumnId (1, Gtk.SortType.Descending);
 			treeview.RulesHint = true;
 			tips.Enable ();
+		}
+		
+		void EnableSorting ()
+		{
+			int nc = 0;
+			foreach (TreeViewColumn c in treeview.Columns)
+				store.SetSortFunc (nc++, CompareNodes);
+		}
+		
+		void DisableSorting ()
+		{
+			int nc = 0;
+			foreach (TreeViewColumn c in treeview.Columns)
+				store.SetSortFunc (nc++, null);
 		}
 		
 		void AddColumn (string title, int ncol, string desc)
@@ -146,12 +161,19 @@ namespace HeapShot.Gui.Widgets
 				return;
 			}
 
+			treeview.Model = null;
+			DisableSorting ();
+			treeview.FreezeChildNotify ();
+			
 			loading = true;
 			store.Clear ();
 			int n=0;
+			int tot = 0;
 			foreach (int t in file.GetTypes ()) {
+				tot++;
 				if (++n == 20) {
-					if (ProgressEvent != null) {
+					Console.WriteLine ("pp: " + tot);
+/*					if (ProgressEvent != null) {
 						ProgressEvent (n, file.GetTypeCount (), null);
 					}
 					while (Gtk.Application.EventsPending ())
@@ -161,12 +183,15 @@ namespace HeapShot.Gui.Widgets
 						reloadRequested = false;
 						FillAllTypes (this.file);
 						return;
-					}
+					}*/
 					n = 0;
 				}
 				if (file.GetObjectCountForType (t) > 0)
 					InternalFillType (file, t);
 			}
+			treeview.ThawChildNotify ();
+			EnableSorting ();
+			treeview.Model = store;
 			loading = false;
 		}
 		
@@ -180,12 +205,26 @@ namespace HeapShot.Gui.Widgets
 			treeview.Columns [TreeColRefs+1].Visible = InverseReferences;
 			treeview.Columns [TreeColRefs+2].Visible = InverseReferences;
 			TreeIter iter = InternalFillType (file, file.GetTypeFromName (typeName));
-			treeview.ExpandRow (store.GetPath (iter), false);
+			if (!iter.Equals (TreeIter.Zero))
+				treeview.ExpandRow (store.GetPath (iter), false);
 		}
 		
 		TreeIter InternalFillType (ObjectMapReader file, int type)
 		{
-			ReferenceNode node = file.GetReferenceTree (type, checkInverse.Active);
+			ReferenceNode node;
+			if (checkPurge.Active) {
+				ProgressDialog dlg = new ProgressDialog ();
+				dlg.TransientFor = (Gtk.Window) this.Toplevel;
+				dlg.Show ();
+				while (Gtk.Application.EventsPending ())
+					Gtk.Application.RunIteration ();
+				node = file.GetRootReferenceTree (dlg, type);
+				dlg.Destroy ();
+				if (node == null)
+					return TreeIter.Zero;
+			}
+			else
+				node = file.GetReferenceTree (type, checkInverse.Active);
 			return AddNode (TreeIter.Zero, node);
 		}
 		
@@ -221,10 +260,11 @@ namespace HeapShot.Gui.Widgets
 
 		TreeIter AddNode (TreeIter parent, FieldReference node)
 		{
+			string ss = node.IsStatic ? " (static)" : "";
 			if (parent.Equals (TreeIter.Zero))
-				return store.AppendValues (node, "field", node.FiledName, true, "", "", node.RefCount.ToString ("n0"), "", "");
+				return store.AppendValues (node, "field", node.FiledName + ss, true, "", "", node.RefCount.ToString ("n0"), "", "");
 			else
-				return store.AppendValues (parent, node, "field", node.FiledName, true, "", "", node.RefCount.ToString ("n0"), "", "");
+				return store.AppendValues (parent, node, "field", node.FiledName + ss, true, "", "", node.RefCount.ToString ("n0"), "", "");
 		}
 
 		private void OnTestExpandRow (object sender, Gtk.TestExpandRowArgs args)
@@ -259,6 +299,7 @@ namespace HeapShot.Gui.Widgets
 		
 		protected virtual void OnCheckInverseClicked(object sender, System.EventArgs e)
 		{
+			checkPurge.Sensitive = checkInverse.Active;
 			Refill ();
 		}
 
@@ -268,6 +309,11 @@ namespace HeapShot.Gui.Widgets
 		}
 
 		protected virtual void OnEntryFilterActivated(object sender, System.EventArgs e)
+		{
+			Refill ();
+		}
+		
+		protected virtual void OnCheckPurgeClicked (object sender, System.EventArgs e)
 		{
 			Refill ();
 		}
@@ -513,7 +559,7 @@ namespace HeapShot.Gui.Widgets
 		{
 			HideTipWindow ();
 		}
-		
+
 		public event EventHandler TypeActivated;
 	}
 	

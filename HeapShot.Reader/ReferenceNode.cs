@@ -25,11 +25,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using HeapShot.Reader.Graphs;
 
 namespace HeapShot.Reader
 {
-	public class ReferenceNode
+	public class ReferenceNode: IHeapShotData
 	{
+		static List<FieldReference> emptyFieldReferences = new List<HeapShot.Reader.FieldReference> ();
 		bool inverse;
 		ObjectMapReader map;
 		
@@ -42,10 +44,11 @@ namespace HeapShot.Reader
 		int type;
 		bool globalRefs;
 		
-		public ArrayList references;
-		public ArrayList fieldReferences;
-		public Dictionary<int,RootRefInfo> refObjects = new Dictionary<int,RootRefInfo> ();
-		public Dictionary<int,int> parentObjects = new Dictionary<int,int> ();
+		List<ReferenceNode> references;
+		List<FieldReference> fieldReferences;
+		Dictionary<int,RootRefInfo> refObjects = new Dictionary<int,RootRefInfo> ();
+		Dictionary<int,int> parentObjects = new Dictionary<int,int> ();
+		PathTree pathTree;
 		
 		public ReferenceNode (ObjectMapReader map, int type, bool inverse)
 		{
@@ -55,12 +58,21 @@ namespace HeapShot.Reader
 			this.inverse = inverse;
 		}
 		
+		public ReferenceNode (ObjectMapReader map, int type, PathTree pathTree)
+		{
+			this.map = map;
+			this.type = type;
+			TypeName = map.GetTypeName (type);
+			this.pathTree = pathTree;
+			FillRootPaths ();
+		}
+		
 		public uint AverageSize {
 			get { return RefCount != 0 ? (uint) (TotalMemory / (ulong)RefCount) : 0; }
 		}
 		
-		public ICollection FieldReferences {
-			get { return fieldReferences != null ? fieldReferences : (ICollection) Type.EmptyTypes; }
+		public ICollection<FieldReference> FieldReferences {
+			get { return fieldReferences != null ? fieldReferences : emptyFieldReferences; }
 		}
 		
 		public void AddGlobalReferences ()
@@ -71,12 +83,12 @@ namespace HeapShot.Reader
 			globalRefs = true;
 		}
 		
-		public void AddReference (int obj)
+		internal RootRefInfo AddReference (int obj, int tnode)
 		{
-			AddReference (-1, obj, 1, map.GetObjectSize (obj), null);
+			return AddReference (-1, obj, tnode, 1, map.GetObjectSize (obj), null);
 		}
 		
-		void AddReference (int parentObject, int obj, int refsToRoot, ulong rootMem, string fieldName)
+		RootRefInfo AddReference (int parentObject, int obj, int tnode, int refsToRoot, ulong rootMem, string fieldName)
 		{
 			if (parentObject != -1 && !parentObjects.ContainsKey (parentObject)) {
 				parentObjects [parentObject] = parentObject;
@@ -101,8 +113,9 @@ namespace HeapShot.Reader
 					FieldReference f = new FieldReference ();
 					f.FiledName = fieldName;
 					f.RefCount = 1;
+					f.IsStatic = map.IsStaticObject (obj);
 					if (fieldReferences == null)
-						fieldReferences = new ArrayList ();
+						fieldReferences = new List<HeapShot.Reader.FieldReference> ();
 					fieldReferences.Add (f);
 				}
 			}
@@ -112,16 +125,18 @@ namespace HeapShot.Reader
 				ri.References += refsToRoot;
 				ri.Memory += rootMem;
 				refObjects [obj] = ri;
-				return;
+				return ri;
 			}
 
 			RefCount++;
 			
 			RootRefInfo rr = new RootRefInfo ();
+			rr.TreeNode = tnode;
 			rr.References = refsToRoot;
 			rr.Memory = rootMem;
 			refObjects.Add (obj, rr);
 			TotalMemory += map.GetObjectSize (obj);
+			return rr;
 		}
 		
 		public bool HasReferences {
@@ -130,42 +145,76 @@ namespace HeapShot.Reader
 			}
 		}
 		
-		public ArrayList References {
+		void InitRoots ()
+		{
+			if (globalRefs) {
+				RefsToParent = 0;
+				RefCount = 0;
+				TotalMemory = 0;
+				foreach (int obj in map.GetObjectsByType (type))
+					AddReference (obj, 0);
+				globalRefs = false;
+			}
+		}
+		
+		public List<ReferenceNode> References {
 			get {
 				if (references != null)
 					return references;
 
-				if (globalRefs) {
-					RefsToParent = 0;
-					RefCount = 0;
-					TotalMemory = 0;
-					foreach (int obj in map.GetObjectsByType (type))
-						AddReference (obj);
-					globalRefs = false;
-				}
+				references = new List<ReferenceNode> ();
+				InitRoots ();
+					
+				if (pathTree != null)
+					FillTreePathReferences ();
+				else if (inverse)
+					FillInverseReferences ();
+				else
+					FillReferences ();
 				
-				references = new ArrayList ();
-				foreach (KeyValuePair<int,RootRefInfo> entry in refObjects) {
-					int obj = entry.Key;
-					if (inverse) {
-						foreach (int oref in map.GetReferencers (obj)) {
-							ReferenceNode cnode = GetReferenceNode (oref);
-							string fname = map.GetReferencerField (oref, obj);
-							cnode.AddReference (obj, oref, entry.Value.References, entry.Value.Memory, fname);
-						}
-					} else {
-						foreach (int oref in map.GetReferences (obj)) {
-							ReferenceNode cnode = GetReferenceNode (oref);
-							string fname = map.GetReferencerField (obj, oref);
-							cnode.AddReference (obj, oref, 0, 0, fname);
-						}
-					}
-				}
 				foreach (ReferenceNode r in references)
 					r.Flush ();
 
 				refObjects = null;
 				return references;
+			}
+		}
+		
+		void FillReferences ()
+		{
+			foreach (KeyValuePair<int,RootRefInfo> entry in refObjects) {
+				int obj = entry.Key;
+				foreach (int oref in map.GetReferences (obj)) {
+					ReferenceNode cnode = GetReferenceNode (oref);
+					string fname = map.GetReferencerField (obj, oref);
+					cnode.AddReference (obj, oref, 0, 0, 0, fname);
+				}
+			}
+		}
+		
+		void FillInverseReferences ()
+		{
+			foreach (KeyValuePair<int,RootRefInfo> entry in refObjects) {
+				int obj = entry.Key;
+				foreach (int oref in map.GetReferencers (obj)) {
+					ReferenceNode cnode = GetReferenceNode (oref);
+					string fname = map.GetReferencerField (oref, obj);
+					cnode.AddReference (obj, oref, 0, entry.Value.References, entry.Value.Memory, fname);
+				}
+			}
+		}
+		
+		void FillTreePathReferences ()
+		{
+			foreach (KeyValuePair<int,RootRefInfo> entry in refObjects) {
+				int node = entry.Value.TreeNode;
+				int pobj = entry.Key;
+				foreach (int cn in pathTree.GetChildNodes (node)) {
+					int oref = pathTree.GetNodeObject (cn);
+					ReferenceNode cnode = GetReferenceNode (oref);
+					string fname = map.GetReferencerField (oref, pobj);
+					cnode.AddReference (pobj, oref, cn, entry.Value.References, entry.Value.Memory, fname);
+				}
 			}
 		}
 		
@@ -182,8 +231,17 @@ namespace HeapShot.Reader
 					return cnode;
 			}
 			ReferenceNode nod = new ReferenceNode (map, map.GetObjectType (obj), inverse);
+			nod.pathTree = pathTree;
 			references.Add (nod);
 			return nod;
+		}
+		
+		void FillRootPaths ()
+		{
+			foreach (int node in pathTree.GetRootNodes ()) {
+				int pobj = pathTree.GetNodeObject (node);
+				AddReference (pobj, node);
+			}
 		}
 		
 		public void Print (int maxLevels)
@@ -212,16 +270,22 @@ namespace HeapShot.Reader
 		}
 	}
 	
-	public class FieldReference
+	public class FieldReference: IHeapShotData
 	{
 		public int RefCount;
 		public string FiledName;
+		public bool IsStatic;
 	}
 	
 	public struct RootRefInfo
 	{
 		public int References;
+<<<<<<< HEAD
 		public ulong Memory;
+=======
+		public uint Memory;
+		public int TreeNode; // Used only on purged trees
+>>>>>>> d47a55a... Misc improvements
 	}
 	
 	class ReferenceSorter: IComparer
@@ -237,5 +301,9 @@ namespace HeapShot.Reader
 			else
 				return 1;
 		}
+	}
+	
+	public interface IHeapShotData
+	{
 	}
 }

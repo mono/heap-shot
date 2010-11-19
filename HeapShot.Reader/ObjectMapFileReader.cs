@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using MonoDevelop.Profiler;
+using HeapShot.Reader.Graphs;
 
 namespace HeapShot.Reader {
 
@@ -57,6 +58,57 @@ namespace HeapShot.Reader {
 		List<uint> fieldCodes;
 		List<ulong> fieldReferenceCodes;
 		long[] objectCodes;
+		
+/*
+		 * Here is a visual example of how tables are filled:
+		 * 
+		 * objects: array of ObjectInfo objects (rXXX means reference to ObjectInfo with code XXX)
+		 *                     0    1    2    3    4    5
+		 *                    ---  ---  ---  ---  ---  ---
+		 * Code:              103  101  100  102  104  105
+		 * Type:               0    0    0    1    1    1
+		 * RefsIndex:          0    2    3    -    -    -
+		 * RefsCount:          2    1    1    0    0    0
+		 * InverseRefsIndex:   0    -    -    1    2    3
+		 * InverseRefsCount:   1    0    0    1    1    1
+		 *
+		 * objectCodes: sorted array of object codes, used for binary search. The found index is used to query 'objectIndices'
+		 *   0    1    2    3    4    5
+		 * [100][101][102][103][104][105]
+		 *
+		 * objectIndices: from an index found in 'objectCodes', returns an index for 'objects'
+		 *  0  1  2  3  4  5
+		 * [2][1][3][0][4][5]
+		 * 
+		 * types: array of TypeInfo objects (rXXX means reference to TypeInfo with code XXX)
+		 *    0     1
+		 * [r201][r200]
+		 * 
+		 * typeCodes: sorted array of type codes, used for binary search. The found index is used to query 'typeIndices'
+		 *   0    1
+		 * [200][201]
+		 *
+		 * typeIndices: from an index found in 'typeCodes', returns an index for 'types'
+		 *  0  1
+		 * [1][0]
+		 * 
+		 * referenceCodes: object references. ObjectInfo.RefsIndex is the position
+		 * in this array where references for an object start. ObjectInfo.RefsCount is
+		 * the number of references of the object:
+		 *   0    1    2    3
+		 * [105][104][102][103]
+		 * 
+		 * references: same as 'referenceCodes', but using object indexes instead of codes
+		 *  0  1  2  3
+		 * [5][4][3][0]
+		 * 
+		 * inverseRefs: inverse reference indexes
+		 *  0  1  2  3
+		 * [2][1][0][0]
+
+ 
+ 
+*/
 		
 /*
 		 * Here is a visual example of how tables are filled:
@@ -309,8 +361,10 @@ namespace HeapShot.Reader {
 				if (i >= 0) {
 					references[n] = objectIndices [i];
 					objects [objectIndices [i]].InverseRefsCount++;
-				} else
+				} else {
+					Console.WriteLine ("Referenced object not found: " + referenceCodes[n]);
 					references[n] = -1;
+				}
 			}
 			
 			// Calculate the array index of inverse referenceCodes for each object
@@ -387,47 +441,174 @@ namespace HeapShot.Reader {
 			return nod;
 		}
 		
-		public List<List<int>> GetRoots (int type)
+		public ReferenceNode GetRootReferenceTree (IProgressListener listener, int type)
 		{
-			List<int> path = new List<int> ();
-			Dictionary<int,List<int>> roots = new Dictionary<int,List<int>> ();
-			Dictionary<int,int> visited = new Dictionary<int,int> ();
-			
-			foreach (int obj in GetObjectsByType (type)) {
-				FindRoot (visited, path, roots, obj);
-				visited.Clear ();
-			}
-			
-			List<List<int>> res = new List<List<int>> ();
-			res.AddRange (roots.Values);
-			return res;
+			PathTree ptree = GetRoots (listener, type);
+			if (ptree == null)
+				return null;
+			ReferenceNode nod = new ReferenceNode (this, type, ptree);
+			nod.Flush ();
+			return nod;
 		}
 		
-		void FindRoot (Dictionary<int,int> visited, List<int> path, Dictionary<int,List<int>> roots, int obj)
+		public Graph CreateGraph (int minInstances)
 		{
-			if (visited.ContainsKey (obj))
-				return;
-			visited [obj] = obj;
-			path.Add (obj);
+			Graph gr = new Graph (this);
+			for (int n=0; n<numObjects; n++) {
+				gr.AddObject (n);
+			}
+			for (int n=0; n<numObjects; n++) {
+				foreach (int ob in GetReferences (n))
+					gr.AddReference (n, ob, 0);
+			}
+			
+			gr.Flush ();
+			return gr;
+		}
+		
+		class RootInfo
+		{
+			public List<int> Path = new List<int> ();
+			public Dictionary<int,int[]> Roots = new Dictionary<int,int[]> ();
+			public Dictionary<int,int> Visited = new Dictionary<int,int> ();
+			public Dictionary<int,int> BaseObjects = new Dictionary<int,int> ();
+			public Dictionary<int,int> DeadEnds = new Dictionary<int,int> ();
+			public Dictionary<int,int> Allobs = new Dictionary<int,int> ();
+			public int nc;
+		}
+
+		// Returns a list of paths. Each path is a sequence of objects, starting
+		// on an object of type 'type' and ending on a root.
+		public PathTree GetRoots (IProgressListener listener, int type)
+		{
+			RootInfo rootInfo = new RootInfo ();
+			PathTree pathTree = new PathTree (this);
+
+			foreach (int obj in GetObjectsByType (type))
+				rootInfo.BaseObjects [obj] = obj;
+
+			int nc = 0;
+			foreach (int obj in GetObjectsByType (type)) {
+				
+				if (listener.Cancelled)
+					return null;
+				
+				rootInfo.nc = 0;
+				
+				FindRoot (rootInfo, pathTree, obj);
+				
+				// Register partial paths to the root, to avoid having to
+				// recalculate them again
+				
+//				if (nc % 100 == 0)
+//					Console.WriteLine ("NC: " + nc + " " + rootInfo.Roots.Count);
+				
+				pathTree.AddBaseObject (obj);
+				foreach (KeyValuePair<int, int[]> e in rootInfo.Roots) {
+					pathTree.AddPath (e.Value);
+				}
+				rootInfo.Visited.Clear ();
+				rootInfo.Roots.Clear ();
+				nc++;
+
+				double newp = (double)nc / (double)rootInfo.BaseObjects.Count;
+				listener.ReportProgress ("Looking for roots", newp);
+			}
+			
+			pathTree.Flush ();
+			return pathTree;
+		}
+		
+		// It returns -2 of obj is a dead end
+		// Returns n >= 0, if all paths starting at 'obj' end in objects already
+		// visited. 'n' is the index of a node in rootInfo.Path, which is the closest
+		// visited node found
+		// Returns -1 otherwise.
+		// This return value is used to detect dead ends.
+		
+		int FindRoot (RootInfo rootInfo, PathTree pathTree, int obj)
+		{
+			if (rootInfo.DeadEnds.ContainsKey (obj))
+				return -2;
+			
+			int curval;
+			if (rootInfo.Visited.TryGetValue (obj, out curval)) {
+				// The object has already been visited
+				if (rootInfo.Path.Count >= curval) {
+					return rootInfo.Path.IndexOf (obj);
+				}
+			}
+			rootInfo.Visited [obj] = rootInfo.Path.Count;
+			
+			int treePos = pathTree.GetObjectNode (obj);
+			if (treePos != -1) {
+				// If this object already has partial paths to roots,
+				// reuse them.
+				FindTreeRoot (rootInfo.Path, rootInfo.Roots, pathTree, treePos);
+				return -1;
+			}
+			
+			rootInfo.Path.Add (obj);
 			
 			bool hasrefs = false;
+			int findresult = int.MaxValue;
 			foreach (int oref in GetReferencers (obj)) {
 				hasrefs = true;
-				FindRoot (visited, path, roots, oref);
+				if (!rootInfo.BaseObjects.ContainsKey (oref)) {
+					int fr = FindRoot (rootInfo, pathTree, oref);
+					if (fr != -2 && fr < findresult)
+						findresult = fr;
+				}
 			}
 			
 			if (!hasrefs) {
 				// A root
-				if (!roots.ContainsKey (obj)) {
-					roots [obj] = new List<int> (path);
-				} else {
-					List<int> ep = roots [obj];
-					if (ep.Count > path.Count)
-						roots [obj] = new List<int> (path);
-				}
+				rootInfo.Visited.Remove (obj);
+				RegisterPath (rootInfo.Roots, rootInfo.Path, obj);
+				findresult = -1;
 			}
+			
+			rootInfo.Path.RemoveAt (rootInfo.Path.Count - 1);
+			
+			// If all children paths end in nodes already visited, it means that it is a dead end.
+			if (findresult >= rootInfo.Path.Count) {
+				rootInfo.DeadEnds [obj] = obj;
+//				Console.WriteLine ("de: " + findresult);
+			}
+			
+			return findresult;
+		}
+		
+		void FindTreeRoot (List<int> path, Dictionary<int,int[]> roots, PathTree pathTree, int node)
+		{
+			int obj = pathTree.GetNodeObject (node);
+			path.Add (obj);
+			
+			bool hasRef = false;
+			foreach (int cnode in pathTree.GetChildNodes (node)) {
+				FindTreeRoot (path, roots, pathTree, cnode);
+				hasRef = true;
+			}
+			
+			if (!hasRef) {
+				// A root
+				RegisterPath (roots, path, obj);
+			}
+			
 			path.RemoveAt (path.Count - 1);
-		}		
+		}
+		
+		void RegisterPath (Dictionary<int,int[]> roots, List<int> path, int obj)
+		{
+			if (!roots.ContainsKey (obj)) {
+				roots [obj] = path.ToArray ();
+			} else {
+				// Keep the shortest path to the root
+				int[] ep = roots [obj];
+				if (ep.Length > path.Count)
+					roots [obj] = path.ToArray ();
+			}
+		}
 		
 		public int GetTypeCount ()
 		{
@@ -558,6 +739,159 @@ namespace HeapShot.Reader {
 		public ulong GetObjectSizeForType (int type)
 		{
 			return types [type].TotalSize;
+		}
+		
+		public bool IsStaticObject (int obj)
+		{
+			return objects [obj].Code == types [objects [obj].Type].Code;
+		}
+	}
+	
+	public class PathTree
+	{
+		List<int> pathTree = new List<int> ();
+		List<int> roots = new List<int> ();
+		Dictionary<int,int> pathIndex = new Dictionary<int,int> ();
+		ObjectMapReader map;
+		
+		internal PathTree (ObjectMapReader map)
+		{
+			this.map = map;
+		}
+
+		public IEnumerable<int> GetRootNodes ()
+		{
+			return roots;
+		}
+		
+		public IEnumerable<int> GetChildNodes (int node)
+		{
+			int cpos = pathTree [node + 1];
+			while (cpos != -1) {
+				yield return pathTree [cpos];
+				cpos = pathTree [cpos + 1];
+			}
+		}
+		
+		public int GetNodeObject (int node)
+		{
+			return pathTree [node];
+		}
+		
+		internal int GetObjectNode (int obj)
+		{
+			int res;
+			if (pathIndex.TryGetValue (obj, out res))
+				return res;
+			else
+				return -1;
+		}
+		
+		internal void AddBaseObject (int obj)
+		{
+			int pos = AddObject (obj);
+			roots.Add (pos);
+			pathIndex [obj] = pos;
+		}
+		
+		internal int AddObject (int obj)
+		{
+			int pos = pathTree.Count;
+			pathTree.Add (obj);
+			pathTree.Add (-1);
+			return pos;
+		}
+		
+		internal void Flush ()
+		{
+			pathIndex = null;
+		}
+		
+		internal void AddPath (int[] cpath)
+		{
+			int tpos = pathIndex [cpath [0]];
+			
+			for (int n=1; n<cpath.Length; n++) {
+				// Fill gaps in the tree
+				int cobj = cpath[n];
+				int lastcpos = tpos;
+				int cpos = pathTree [tpos + 1];
+				while (cpos != -1) {
+					if (pathTree [pathTree [cpos]] == cobj)
+						break;
+					lastcpos = cpos;
+					cpos = pathTree [cpos + 1];
+				}
+				if (cpos != -1) {
+					// Child already exist
+					tpos = pathTree [cpos];
+				} else {
+					// New child
+					int newObjPos;
+					if (pathIndex.TryGetValue (cobj, out newObjPos)) {
+						// The object is already in the tree.
+						// We only need to register the child node.
+						pathTree.Add (newObjPos);
+						pathTree.Add (-1);
+						tpos = newObjPos;
+					} else {
+						// The object is new in the tree. Register the object.
+						tpos = pathTree.Count;
+						pathIndex.Add (cobj, tpos);
+						pathTree.Add (cobj);
+						pathTree.Add (-1);
+						// Now register the child node
+						pathTree.Add (tpos);
+						pathTree.Add (-1);
+					}
+					// Link the new child node
+					pathTree [lastcpos + 1] = pathTree.Count - 2;
+				}
+			}
+		}
+		
+		public Graph CreateGraph ()
+		{
+			Graph gr = new Graph (map);
+			Dictionary<int,int> visited = new Dictionary<int,int> ();
+			foreach (int node in roots) {
+				gr.ResetRootReferenceTracking ();
+				FillGraph (gr, visited, node);
+			}
+			gr.Flush ();
+			return gr;
+		}
+		
+		void FillGraph (Graph gr, Dictionary<int,int> visited, int node)
+		{
+			if (visited.ContainsKey (node))
+				return;
+			visited [node] = node;
+			int obj = GetNodeObject (node);
+			gr.AddObject (obj);
+			foreach (int cn in GetChildNodes (node)) {
+				int tobj = GetNodeObject (cn);
+				gr.AddObject (tobj);
+				gr.AddReference (obj, tobj, 1);
+				FillGraph (gr, visited, cn);
+			}
+			visited.Remove (node);
+		}
+		
+		internal void Dump ()
+		{
+			Dictionary<int,int> dict = new Dictionary<int,int> ();
+			foreach (int n in roots) {
+				Dump (0, n, dict);
+			}
+		}
+		
+		internal void Dump (int ind, int n, Dictionary<int,int> dict)
+		{
+			Console.WriteLine (new string (' ', ind*2) + pathTree [n]);
+			foreach (int cn in GetChildNodes (n)) {
+				Dump (ind+1, cn, dict);
+			}
 		}
 	}
 }

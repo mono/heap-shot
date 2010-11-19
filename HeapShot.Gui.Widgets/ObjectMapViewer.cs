@@ -70,7 +70,9 @@ namespace HeapShot.Gui.Widgets
 			lastMap = map;
 			
 			if (map != null) {
-				allObjectsTree.FillAllTypes (map);
+				Application.Invoke (delegate {
+					allObjectsTree.FillAllTypes (map);
+				});
 				
 				if (baseMap != null && map != baseMap) {
 					labelName.Text = System.IO.Path.GetFileName (map.Name) + " - " + System.IO.Path.GetFileName (baseMap.Name);
@@ -111,7 +113,7 @@ namespace HeapShot.Gui.Widgets
 			}
 		}
 		
-		ObjectMapReader GetCurrentObjectMap ()
+		public ObjectMapReader GetCurrentObjectMap ()
 		{
 			Gtk.TreeModel foo;
 			Gtk.TreeIter iter;

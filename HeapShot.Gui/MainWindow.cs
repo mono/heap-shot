@@ -8,16 +8,24 @@ public partial class MainWindow: Gtk.Window
 	public int processId = -1;
 	string lastFolder;
 	
-	public MainWindow (): base ("")
+	public MainWindow (string[] args): base ("")
 	{
 		Build ();
 		viewer.Sensitive = false;
+		if (args.Length > 0)
+			OpenFile (args [0]);
 	}
 	
 	protected void OnDeleteEvent (object sender, DeleteEventArgs a)
 	{
 		Application.Quit ();
 		a.RetVal = true;
+	}
+	
+	void OpenFile (string file)
+	{
+		viewer.AddFile (file);
+		viewer.Sensitive = true;
 	}
 
 	protected virtual void OnOpenActivated(object sender, System.EventArgs e)
@@ -34,8 +42,7 @@ public partial class MainWindow: Gtk.Window
 		try {
 			if (response == (int)Gtk.ResponseType.Ok) {
 				lastFolder = dialog.CurrentFolder;
-				viewer.AddFile (dialog.Filename);
-				viewer.Sensitive = true;
+				OpenFile (dialog.Filename);
 			}
 		} finally {
 			dialog.Destroy ();

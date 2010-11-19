@@ -1,5 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <stetic-interface>
+  <configuration>
+    <images-root-path>..</images-root-path>
+  </configuration>
   <import>
     <widget-library name="../HeapShot.Gui.Widgets.dll" internal="true" />
   </import>
@@ -15,7 +18,7 @@
       </source>
     </icon-set>
   </icon-factory>
-  <widget class="Gtk.Bin" id="HeapShot.Gui.Widgets.ObjectMapViewer" design-size="556 300">
+  <widget class="Gtk.Bin" id="HeapShot.Gui.Widgets.ObjectMapViewer" design-size="561 300">
     <property name="MemberName" />
     <property name="Events">ButtonPressMask</property>
     <child>
@@ -26,7 +29,6 @@
           <widget class="Gtk.ScrolledWindow" id="scrolledwindow2">
             <property name="MemberName" />
             <property name="CanFocus">True</property>
-            <property name="VscrollbarPolicy">Automatic</property>
             <property name="HscrollbarPolicy">Never</property>
             <property name="ShadowType">In</property>
             <child>
@@ -48,6 +50,7 @@
           <widget class="Gtk.Notebook" id="notebook">
             <property name="MemberName">notebook</property>
             <property name="CanFocus">True</property>
+            <property name="CurrentPage">0</property>
             <property name="Scrollable">True</property>
             <child>
               <widget class="Gtk.Table" id="table1">
@@ -119,7 +122,6 @@
                   <widget class="Gtk.Label" id="labelCount">
                     <property name="MemberName">labelCount</property>
                     <property name="Xalign">0</property>
-                    <property name="LabelProp" />
                   </widget>
                   <packing>
                     <property name="TopAttach">1</property>
@@ -141,7 +143,6 @@
                   <widget class="Gtk.Label" id="labelMemory">
                     <property name="MemberName">labelMemory</property>
                     <property name="Xalign">0</property>
-                    <property name="LabelProp" />
                   </widget>
                   <packing>
                     <property name="TopAttach">2</property>
@@ -163,7 +164,6 @@
                   <widget class="Gtk.Label" id="labelName">
                     <property name="MemberName">labelName</property>
                     <property name="Xalign">0</property>
-                    <property name="LabelProp" />
                   </widget>
                   <packing>
                     <property name="LeftAttach">1</property>
@@ -180,9 +180,6 @@
                   </packing>
                 </child>
               </widget>
-              <packing>
-                <property name="TabExpand">False</property>
-              </packing>
             </child>
             <child>
               <widget class="Gtk.Label" id="label9">
@@ -201,7 +198,6 @@
               </widget>
               <packing>
                 <property name="Position">1</property>
-                <property name="TabExpand">False</property>
               </packing>
             </child>
             <child>
@@ -234,8 +230,6 @@
           <widget class="Gtk.ScrolledWindow" id="scrolledwindow1">
             <property name="MemberName" />
             <property name="CanFocus">True</property>
-            <property name="VscrollbarPolicy">Automatic</property>
-            <property name="HscrollbarPolicy">Automatic</property>
             <property name="ShadowType">In</property>
             <child>
               <widget class="Gtk.TreeView" id="treeview">
@@ -279,7 +273,6 @@
                     <property name="CanFocus">True</property>
                     <property name="Type">TextOnly</property>
                     <property name="Label">Filter</property>
-                    <property name="IsDialogButton">False</property>
                     <signal name="Clicked" handler="OnButtonFilterClicked" />
                   </widget>
                   <packing>
@@ -311,10 +304,104 @@
                 <property name="Fill">False</property>
               </packing>
             </child>
+            <child>
+              <widget class="Gtk.CheckButton" id="checkPurge">
+                <property name="MemberName" />
+                <property name="Sensitive">False</property>
+                <property name="CanFocus">True</property>
+                <property name="Label" translatable="yes">Roots only</property>
+                <property name="DrawIndicator">True</property>
+                <property name="HasLabel">True</property>
+                <property name="UseUnderline">True</property>
+                <signal name="Clicked" handler="OnCheckPurgeClicked" />
+              </widget>
+              <packing>
+                <property name="Position">2</property>
+                <property name="AutoSize">True</property>
+              </packing>
+            </child>
           </widget>
           <packing>
             <property name="Position">1</property>
             <property name="AutoSize">True</property>
+            <property name="Expand">False</property>
+            <property name="Fill">False</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="Gtk.Dialog" id="HeapShot.Gui.Widgets.ProgressDialog" design-size="400 127">
+    <property name="MemberName" />
+    <property name="Title" translatable="yes">Heap Shot</property>
+    <property name="WindowPosition">CenterOnParent</property>
+    <property name="Modal">True</property>
+    <property name="AllowShrink">True</property>
+    <property name="Buttons">1</property>
+    <property name="HelpButton">False</property>
+    <property name="HasSeparator">False</property>
+    <child internal-child="VBox">
+      <widget class="Gtk.VBox" id="dialog1_VBox">
+        <property name="MemberName" />
+        <property name="BorderWidth">2</property>
+        <child>
+          <widget class="Gtk.VBox" id="vbox2">
+            <property name="MemberName" />
+            <property name="Spacing">6</property>
+            <property name="BorderWidth">6</property>
+            <child>
+              <widget class="Gtk.Label" id="label">
+                <property name="MemberName" />
+                <property name="Xalign">0</property>
+              </widget>
+              <packing>
+                <property name="Position">0</property>
+                <property name="AutoSize">True</property>
+                <property name="Expand">False</property>
+                <property name="Fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="Gtk.ProgressBar" id="progress">
+                <property name="MemberName" />
+              </widget>
+              <packing>
+                <property name="Position">1</property>
+                <property name="AutoSize">True</property>
+                <property name="Expand">False</property>
+                <property name="Fill">False</property>
+              </packing>
+            </child>
+          </widget>
+          <packing>
+            <property name="Position">0</property>
+            <property name="AutoSize">True</property>
+            <property name="Expand">False</property>
+            <property name="Fill">False</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+    <child internal-child="ActionArea">
+      <widget class="Gtk.HButtonBox" id="dialog1_ActionArea">
+        <property name="MemberName" />
+        <property name="Spacing">10</property>
+        <property name="BorderWidth">5</property>
+        <property name="Size">1</property>
+        <property name="LayoutStyle">End</property>
+        <child>
+          <widget class="Gtk.Button" id="buttonCancel">
+            <property name="MemberName" />
+            <property name="CanDefault">True</property>
+            <property name="CanFocus">True</property>
+            <property name="UseStock">True</property>
+            <property name="Type">StockItem</property>
+            <property name="StockId">gtk-cancel</property>
+            <property name="ResponseId">-1</property>
+            <signal name="Clicked" handler="OnButtonCancelClicked" />
+            <property name="label">gtk-cancel</property>
+          </widget>
+          <packing>
             <property name="Expand">False</property>
             <property name="Fill">False</property>
           </packing>
