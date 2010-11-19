@@ -17,8 +17,8 @@ bin_SCRIPTS =			\
 SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
 
 REFS =  \
-	-r:System \
-	-r:../HeapShot.Reader/HeapShot.Reader.dll
+	-r:../HeapShot.Reader/HeapShot.Reader.dll \
+	-r:System
 
 $(TARGET): $(SRCDIR_CSFILES)
 	$(CSC) -out:$@ $(CSFLAGS) $(REFS) $^

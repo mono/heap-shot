@@ -19,11 +19,11 @@ bin_SCRIPTS =			\
 	
 
 REFS =  \
-	-r:Mono.Posix \
-	-r:System \
 	-pkg:gtk-sharp-2.0 \
+	-r:$(top_builddir)/HeapShot.Reader/HeapShot.Reader.dll \
 	-r:../HeapShot.Gui.Widgets/HeapShot.Gui.Widgets.dll \
-	-r:$(top_builddir)/HeapShot.Reader/HeapShot.Reader.dll
+	-r:Mono.Posix \
+	-r:System
 
 RES = gtk-gui/gui.stetic
 

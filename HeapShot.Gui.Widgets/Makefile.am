@@ -13,15 +13,15 @@ CSFILES =  \
 	ReferenceTreeViewer.cs
 
 RES =  \
-	$(srcdir)/class.png \
-	$(srcdir)/field.png \
-	$(srcdir)/gtk-gui/gui.stetic \
-	$(srcdir)/gtk-gui/objects.xml
+	class.png \
+	field.png \
+	gtk-gui/gui.stetic \
+	gtk-gui/objects.xml
 
 REFS =  \
-	-r:System \
 	-pkg:gtk-sharp-2.0 \
-	-r:$(top_builddir)/HeapShot.Reader/HeapShot.Reader.dll
+	-r:$(top_builddir)/HeapShot.Reader/HeapShot.Reader.dll \
+	-r:System
 
 SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
 RES_CSFLAGS = $(foreach res, $(RES), -resource:$(res))
