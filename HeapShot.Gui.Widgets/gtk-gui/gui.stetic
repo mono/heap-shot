@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <stetic-interface>
   <import>
-    <widget-library name="../HeapShot.Gui.Widgets.dll" />
+    <widget-library name="../HeapShot.Gui.Widgets.dll" internal="true" />
   </import>
   <icon-factory>
     <icon-set id="class">

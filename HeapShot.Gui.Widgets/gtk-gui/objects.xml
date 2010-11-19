@@ -1,27 +1,22 @@
-<objects>
-  <object type="HeapShot.Gui.Widgets.ReferenceTreeViewer" palette-category="widget" allow-children="false">
+<objects attr-sync="on">
+  <object type="HeapShot.Gui.Widgets.ObjectMapViewer" palette-category="widget" allow-children="false" base-type="Gtk.Bin">
+    <itemgroups />
+    <signals>
+      <itemgroup label="ObjectMapViewer Signals">
+        <signal name="ProgressEvent" />
+      </itemgroup>
+    </signals>
+  </object>
+  <object type="HeapShot.Gui.Widgets.ReferenceTreeViewer" palette-category="widget" allow-children="false" base-type="Gtk.Bin">
     <itemgroups>
-      <itemgroup ref="Gtk.Widget" />
       <itemgroup label="ReferenceTreeViewer Properties">
         <property name="InverseReferences" />
       </itemgroup>
     </itemgroups>
     <signals>
-      <itemgroup ref="Gtk.Widget" />
       <itemgroup label="ReferenceTreeViewer Signals">
         <signal name="ProgressEvent" />
         <signal name="TypeActivated" />
-      </itemgroup>
-    </signals>
-  </object>
-  <object type="HeapShot.Gui.Widgets.ObjectMapViewer" palette-category="widget" allow-children="false">
-    <itemgroups>
-      <itemgroup ref="Gtk.Widget" />
-    </itemgroups>
-    <signals>
-      <itemgroup ref="Gtk.Widget" />
-      <itemgroup label="ObjectMapViewer Signals">
-        <signal name="ProgressEvent" />
       </itemgroup>
     </signals>
   </object>
