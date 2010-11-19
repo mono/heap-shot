@@ -8,6 +8,8 @@ using HeapShot.Reader;
 
 namespace HeapShot.Gui.Widgets
 {
+	[System.ComponentModel.Category("widget")]
+	[System.ComponentModel.ToolboxItem(true)]
 	public partial class ObjectMapViewer : Gtk.Bin
 	{
 		ListStore fileStore;

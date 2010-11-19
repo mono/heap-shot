@@ -25,30 +25,17 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using MonoDevelop.Profiler;
 
 namespace HeapShot.Reader {
 
 	public class ObjectMapReader 
 	{
-		const uint magic_number = 0x4eabfdd1;
-		const int expected_log_version = 6;
-		const int expected_summary_version = 2;
 		const string log_file_label = "heap-shot logfile";
 		
-		bool terminated_normally = true;
 		string name;
 		DateTime timestamp;
-		uint numTypes;
-		uint numObjects;
-		uint numReferences;
-		uint numFields;
-		uint totalMemory;
-		uint objectCount;
-		
-		int curObject;
-		int curType;
-		int curField;
-		int curRef;
+		ulong totalMemory;
 		
 		ObjectInfo[] objects;
 		TypeInfo[] types;
@@ -58,13 +45,69 @@ namespace HeapShot.Reader {
 		int[] references;
 		int[] inverseRefs;
 		int[] fieldReferences;
-		bool[] filteredObjects;
 		
-		uint[] referenceCodes;
-		uint[] objectTypeCodes;
-		uint[] fieldCodes;
-		uint[] fieldReferenceCodes;
-		uint[] objectCodes;
+		bool[] filteredObjects;
+		int filteredCount;
+		
+		List<ObjectInfo> objectsList;
+		List<TypeInfo> typesList;
+		List<string> fieldNamesList;
+		List<long> referenceCodes;
+		List<long> objectTypeCodes;
+		List<uint> fieldCodes;
+		List<ulong> fieldReferenceCodes;
+		long[] objectCodes;
+		
+/*
+		 * Here is a visual example of how tables are filled:
+		 * 
+		 * objects: array of ObjectInfo objects (rXXX means reference to ObjectInfo with code XXX)
+		 *                     0    1    2    3    4    5
+		 *                    ---  ---  ---  ---  ---  ---
+		 * Code:              103  101  100  102  104  105
+		 * Type:               0    0    0    1    1    1
+		 * RefsIndex:          0    2    3    -    -    -
+		 * RefsCount:          2    1    1    0    0    0
+		 * InverseRefsIndex:   0    -    -    1    2    3
+		 * InverseRefsCount:   1    0    0    1    1    1
+		 *
+		 * objectCodes: sorted array of object codes, used for binary search. The found index is used to query 'objectIndices'
+		 *   0    1    2    3    4    5
+		 * [100][101][102][103][104][105]
+		 *
+		 * objectIndices: from an index found in 'objectCodes', returns an index for 'objects'
+		 *  0  1  2  3  4  5
+		 * [2][1][3][0][4][5]
+		 * 
+		 * types: array of TypeInfo objects (rXXX means reference to TypeInfo with code XXX)
+		 *    0     1
+		 * [r201][r200]
+		 * 
+		 * typeCodes: sorted array of type codes, used for binary search. The found index is used to query 'typeIndices'
+		 *   0    1
+		 * [200][201]
+		 *
+		 * typeIndices: from an index found in 'typeCodes', returns an index for 'types'
+		 *  0  1
+		 * [1][0]
+		 * 
+		 * referenceCodes: object references. ObjectInfo.RefsIndex is the position
+		 * in this array where references for an object start. ObjectInfo.RefsCount is
+		 * the number of references of the object:
+		 *   0    1    2    3
+		 * [105][104][102][103]
+		 * 
+		 * references: same as 'referenceCodes', but using object indexes instead of codes
+		 *  0  1  2  3
+		 * [5][4][3][0]
+		 * 
+		 * inverseRefs: inverse reference indexes
+		 *  0  1  2  3
+		 * [2][1][0][0]
+
+ 
+ 
+*/
 		
 		internal ObjectMapReader ()
 		{
@@ -80,7 +123,6 @@ namespace HeapShot.Reader {
 			BinaryReader reader;
 			reader = new BinaryReader (stream);
 			
-			ReadPreamble (reader);
 			ReadLogFile (reader);
 			
 			reader.Close ();
@@ -96,12 +138,12 @@ namespace HeapShot.Reader {
 			get { return timestamp; }
 		}
 		
-		public uint TotalMemory {
+		public ulong TotalMemory {
 			get { return totalMemory; }
 		}
 		
 		public uint NumObjects {
-			get { return objectCount; }
+			get { return (uint) (objects.Length - filteredCount); }
 		}
 		
 		public static ObjectMapReader CreateProcessSnapshot (int pid)
@@ -135,89 +177,41 @@ namespace HeapShot.Reader {
 			return new ObjectMapReader (fileName);
 		}
 
-		///////////////////////////////////////////////////////////////////
-
-		private void Spew (string format, params object [] args)
-		{
-			string message;
-			message = String.Format (format, args);
-			Console.WriteLine (message);
-		}
-
-		///////////////////////////////////////////////////////////////////
-
-		private void ReadPreamble (BinaryReader reader)
-		{
-			uint this_magic;
-			this_magic = reader.ReadUInt32 ();
-			if (this_magic != magic_number) {
-				string msg;
-				msg = String.Format ("Bad magic number: expected {0}, found {1}",
-						     magic_number, this_magic);
-				throw new Exception (msg);
-			}
-
-			int this_version;
-			this_version = reader.ReadInt32 ();
-
-			string this_label;
-			int expected_version;
-
-			this_label = reader.ReadString ();
-			if (this_label == log_file_label) {
-				expected_version = expected_log_version;
-			} else
-				throw new Exception ("Unknown file label in heap-shot outfile");
-
-			if (this_version != expected_version) {
-				string msg;
-				msg = String.Format ("Version error in {0}: expected {1}, found {2}",
-						     this_label, expected_version, this_version);
-				throw new Exception (msg);
-			}
-			numTypes = reader.ReadUInt32 ();
-			numObjects = reader.ReadUInt32 ();
-			numReferences = reader.ReadUInt32 ();
-			numFields = reader.ReadUInt32 ();
-			objectCount = numObjects;
-		}
-
 		//
 		// Code to read the log files generated at runtime
 		//
 
-		// These need to agree w/ the definitions in outfile-writer.c
-		const byte TAG_TYPE      = 0x01;
-		const byte TAG_OBJECT    = 0x02;
-		const byte TAG_EOS       = 0xff;
-
 		private void ReadLogFile (BinaryReader reader)
 		{
-			int chunk_count = 0;
-			
-			objects = new ObjectInfo [numObjects];
-			types = new TypeInfo [numTypes];
-			objectTypeCodes = new uint [numObjects];
-			referenceCodes = new uint [numReferences];
-			fieldReferenceCodes = new uint [numReferences];
-			fieldCodes = new uint [numFields];
-			fieldNames = new string [numFields];
+			objectsList = new List<ObjectInfo> ();
+			typesList = new List<TypeInfo> ();
+			objectTypeCodes = new List<long> ();
+			referenceCodes = new List<long> ();
+			fieldReferenceCodes = new List<ulong> ();
+			fieldCodes = new List<uint> ();
+			fieldNamesList = new List<string> ();
 
-			try {
-				while (ReadLogFileChunk (reader))
-					++chunk_count;
-
-			} catch (System.IO.EndOfStreamException) {
-				// This means that the outfile was truncated.
-				// In that case, just do nothing --- except if the file
-				// claimed that things terminated normally.
-				if (terminated_normally)
-					throw new Exception ("The heap log did not contain TAG_EOS, "
-							     + "but the outfile was marked as having been terminated normally, so "
-							     + "something must be terribly wrong.");
+			Header h = Header.Read (reader);
+			while (reader.BaseStream.Position < reader.BaseStream.Length) {
+				BufferHeader bheader = BufferHeader.Read (reader);
+				var endPos = reader.BaseStream.Position + bheader.Length;
+				while (reader.BaseStream.Position < endPos) {
+					Event e = Event.Read (reader);
+					if (e is MetadataEvent)
+						ReadLogFileChunk_Type ((MetadataEvent)e);
+					else if (e is HeapEvent)
+						ReadLogFileChunk_Object ((HeapEvent)e);
+				}
 			}
+			
+			objects = objectsList.ToArray ();
+			types = typesList.ToArray ();
+			fieldNames = fieldNamesList.ToArray ();
+			objectsList = null;
+			typesList = null;
+			fieldNamesList = null;
+			
 			BuildMap ();
-			Spew ("Processed {0} chunks", chunk_count);
 			
 			objectTypeCodes = null;
 			referenceCodes = null;
@@ -225,71 +219,44 @@ namespace HeapShot.Reader {
 			fieldCodes = null;
 		}
 
-		private bool ReadLogFileChunk (BinaryReader reader)
+		private void ReadLogFileChunk_Type (MetadataEvent t)
 		{
-			byte tag = reader.ReadByte ();
-
-			switch (tag) {
-			case TAG_TYPE:
-				ReadLogFileChunk_Type (reader);
-				break;
-					
-			case TAG_OBJECT:
-				ReadLogFileChunk_Object (reader);
-				break;
-				
-			case TAG_EOS:
-				//Spew ("Found EOS");
-				return false;
-
-			default:
-				throw new Exception ("Unknown tag! " + tag);
-			}
-
-			return true;
-		}
-		
-		private void ReadLogFileChunk_Type (BinaryReader reader)
-		{
-			uint code = reader.ReadUInt32 ();
-			string name = reader.ReadString ();
+			if (t.MType != MetadataEvent.MetaDataType.Class)
+				return;
 			
-			types [curType].Code = code;
-			types [curType].Name = name;
-			types [curType].FieldsIndex = curField;
+			TypeInfo ti = new TypeInfo ();
+			ti.Code = t.Pointer;
+			ti.Name = t.Name;
+			ti.FieldsIndex = fieldCodes.Count;
 			
 			int nf = 0;
-			uint fcode;
+/*			uint fcode;
 			while ((fcode = reader.ReadUInt32 ()) != 0) {
-				fieldCodes [curField] = fcode;
-				fieldNames [curField] = reader.ReadString ();
-				curField++;
+				fieldCodes.Add (fcode);
+				fieldNamesList.Add (reader.ReadString ());
 				nf++;
-			}
-			types [curType].FieldsCount = nf;
-			curType++;
+			}*/
+			ti.FieldsCount = nf;
+			typesList.Add (ti);
 		}
 		
-		private void ReadLogFileChunk_Object (BinaryReader reader)
+		private void ReadLogFileChunk_Object (HeapEvent he)
 		{
-			objects [curObject].Code = reader.ReadUInt32 ();
-			objectTypeCodes [curObject] = reader.ReadUInt32 ();
-			objects [curObject].Size = reader.ReadUInt32 ();
-			objects [curObject].RefsIndex = curRef;
-			totalMemory += objects [curObject].Size;
+			ObjectInfo ob = new ObjectInfo ();
+			ob.Code = he.Object;
+			ob.Size = he.Size;
+			ob.RefsIndex = referenceCodes.Count;
+			ob.RefsCount = he.ObjectRefs.Length;
+			objectTypeCodes [objectsList.Count] = he.Class;
+			totalMemory += ob.Size;
 			
 			// Read referenceCodes
 			
-			int nr = 0;
-			uint oref;
-			while ((oref = reader.ReadUInt32 ()) != 0) {
-				referenceCodes [curRef] = oref;
-				fieldReferenceCodes [curRef] = reader.ReadUInt32 ();
-				nr++;
-				curRef++;
+			for (int n=0; n < he.ObjectRefs.Length; n++) {
+				referenceCodes.Add (he.ObjectRefs [n]);
+				fieldReferenceCodes.Add (he.RelOffset [n]);
 			}
-			objects [curObject].RefsCount = nr;
-			curObject++;
+			objectsList.Add (ob);
 		}
 		
 		void BuildMap ()
@@ -299,13 +266,13 @@ namespace HeapShot.Reader {
 			RefComparer objectComparer = new RefComparer ();
 			objectComparer.objects = objects;
 			
-			objectIndices = new int [numObjects];
-			for (int n=0; n < numObjects; n++)
+			objectIndices = new int [objects.Length];
+			for (int n=0; n < objects.Length; n++)
 				objectIndices [n] = n;
 			Array.Sort<int> (objectIndices, objectComparer);
 			// Sorted array of codes needed for the binary search
-			objectCodes = new uint [numObjects];	
-			for (int n=0; n < numObjects; n++)
+			objectCodes = new long [objects.Length];	
+			for (int n=0; n < objects.Length; n++)
 				objectCodes [n] = objects [objectIndices[n]].Code;
 			
 			// Build an array of type indices and sort it
@@ -313,20 +280,20 @@ namespace HeapShot.Reader {
 			TypeComparer typeComparer = new TypeComparer ();
 			typeComparer.types = types;
 			
-			typeIndices = new int [numTypes];
-			for (int n=0; n < numTypes; n++)
+			typeIndices = new int [types.Length];
+			for (int n=0; n < types.Length; n++)
 				typeIndices [n] = n;
 			Array.Sort<int> (typeIndices, typeComparer);
 			// Sorted array of codes needed for the binary search
-			uint[] typeCodes = new uint [numTypes];	
-			for (int n=0; n < numTypes; n++) {
+			long[] typeCodes = new long [types.Length];	
+			for (int n=0; n < types.Length; n++) {
 				typeCodes [n] = types [typeIndices[n]].Code;
 			}
 			
 			// Assign the type index to each object
 			
-			for (int n=0; n<numObjects; n++) {
-				int i = Array.BinarySearch<uint> (typeCodes, objectTypeCodes [n]);
+			for (int n=0; n<objects.Length; n++) {
+				int i = Array.BinarySearch<long> (typeCodes, objectTypeCodes [n]);
 				if (i >= 0) {
 					objects [n].Type = typeIndices [i];
 					types [objects [n].Type].ObjectCount++;
@@ -335,9 +302,9 @@ namespace HeapShot.Reader {
 			}
 			
 			// Build the array of referenceCodes, but using indexes
-			references = new int [numReferences];
+			references = new int [referenceCodes.Count];
 			
-			for (int n=0; n<numReferences; n++) {
+			for (int n=0; n<referenceCodes.Count; n++) {
 				int i = Array.BinarySearch (objectCodes, referenceCodes[n]);
 				if (i >= 0) {
 					references[n] = objectIndices [i];
@@ -348,9 +315,9 @@ namespace HeapShot.Reader {
 			
 			// Calculate the array index of inverse referenceCodes for each object
 			
-			int[] invPositions = new int [numObjects];	// Temporary array to hold reference positions
+			int[] invPositions = new int [objects.Length];	// Temporary array to hold reference positions
 			int rp = 0;
-			for (int n=0; n<numObjects; n++) {
+			for (int n=0; n<objects.Length; n++) {
 				objects [n].InverseRefsIndex = rp;
 				invPositions [n] = rp;
 				rp += objects [n].InverseRefsCount;
@@ -359,10 +326,10 @@ namespace HeapShot.Reader {
 			// Build the array of inverse referenceCodes
 			// Also calculate the index of each field name
 			
-			inverseRefs = new int [numReferences];
-			fieldReferences = new int [numReferences];
+			inverseRefs = new int [referenceCodes.Count];
+			fieldReferences = new int [referenceCodes.Count];
 			
-			for (int ob=0; ob < numObjects; ob++) {
+			for (int ob=0; ob < objects.Length; ob++) {
 				int fi = types [objects [ob].Type].FieldsIndex;
 				int nf = fi + types [objects [ob].Type].FieldsCount;
 				int sr = objects [ob].RefsIndex;
@@ -374,7 +341,7 @@ namespace HeapShot.Reader {
 						invPositions [i]++;
 					}
 					// If the reference is bound to a field, locate the field
-					uint fr = fieldReferenceCodes [sr];
+					ulong fr = fieldReferenceCodes [sr];
 					if (fr != 0) {
 						for (int k=fi; k<nf; k++) {
 							if (fieldCodes [k] == fr) {
@@ -464,12 +431,12 @@ namespace HeapShot.Reader {
 		
 		public int GetTypeCount ()
 		{
-			return (int) numTypes;
+			return types.Length;
 		}
 		
 		public int GetTypeFromName (string name)
 		{
-			for (int n=0; n<numTypes; n++) {
+			for (int n=0; n<types.Length; n++) {
 				if (name == types [n].Name)
 					return n;
 			}
@@ -478,7 +445,7 @@ namespace HeapShot.Reader {
 		
 		public IEnumerable<int> GetObjectsByType (int type)
 		{
-			for (int n=0; n<numObjects; n++) {
+			for (int n=0; n < objects.Length; n++) {
 				if (objects [n].Type == type && (filteredObjects == null || !filteredObjects[n])) {
 					yield return n;
 				}
@@ -491,11 +458,6 @@ namespace HeapShot.Reader {
 			dif.fieldNames = newMap.fieldNames;
 			dif.fieldReferences = newMap.fieldReferences;
 			dif.inverseRefs = newMap.inverseRefs;
-			dif.numFields = newMap.numFields;
-			dif.numObjects = newMap.numObjects;
-			dif.numReferences = newMap.numReferences;
-			dif.numTypes = newMap.numTypes;
-			dif.objectCount = newMap.objectCount;
 			dif.objectIndices = newMap.objectIndices;
 			dif.objects = newMap.objects;
 			dif.objectCodes = newMap.objectCodes;
@@ -510,8 +472,8 @@ namespace HeapShot.Reader {
 		public void RemoveData (ObjectMapReader otherReader)
 		{
 			types = (TypeInfo[]) types.Clone ();
-			filteredObjects = new bool [numObjects];
-			for (int n=0; n<otherReader.numObjects; n++) {
+			filteredObjects = new bool [objects.Length];
+			for (int n=0; n<otherReader.objects.Length; n++) {
 				int i = Array.BinarySearch (objectCodes, otherReader.objects[n].Code);
 				if (i >= 0) {
 					i = objectIndices [i];
@@ -519,7 +481,7 @@ namespace HeapShot.Reader {
 					int t = objects[i].Type;
 					types [t].ObjectCount--;
 					types [t].TotalSize -= objects[i].Size;
-					this.objectCount--;
+					filteredCount++;
 					this.totalMemory -= objects[i].Size;
 				}
 			}
@@ -572,14 +534,14 @@ namespace HeapShot.Reader {
 			return objects [obj].Type;
 		}
 		
-		public uint GetObjectSize (int obj)
+		public ulong GetObjectSize (int obj)
 		{
 			return objects [obj].Size;
 		}
 		
 		public IEnumerable<int> GetTypes ()
 		{
-			for (int n=0; n<numTypes; n++)
+			for (int n=0; n<types.Length; n++)
 				yield return n;
 		}
 		
@@ -588,12 +550,12 @@ namespace HeapShot.Reader {
 			return types [type].Name;
 		}
 		
-		public int GetObjectCountForType (int type)
+		public long GetObjectCountForType (int type)
 		{
 			return types [type].ObjectCount;
 		}
 		
-		public uint GetObjectSizeForType (int type)
+		public ulong GetObjectSizeForType (int type)
 		{
 			return types [type].TotalSize;
 		}

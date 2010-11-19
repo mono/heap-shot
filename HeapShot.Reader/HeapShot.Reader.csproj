@@ -10,7 +10,7 @@
     <RootNamespace>HeapShot.Reader</RootNamespace>
     <ApplicationIcon>.</ApplicationIcon>
     <AssemblyName>HeapShot.Reader</AssemblyName>
-    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,15 +44,22 @@
     <Compile Include="ObjectReference.cs" />
     <Compile Include="ReferenceNode.cs" />
     <Compile Include="TypeInfo.cs" />
+    <Compile Include="Buffer.cs" />
+    <Compile Include="Event.cs" />
+    <Compile Include="EventVisitor.cs" />
+    <Compile Include="LogBuffer.cs" />
+    <Compile Include="Util.cs" />
+    <Compile Include="Header.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Core" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
-        <MonoDevelop.Autotools.MakefileInfo IntegrationEnabled="true" RelativeMakefileName="./Makefile.am" SyncReferences="true" IsAutotoolsProject="true" RelativeConfigureInPath="../">
+        <MonoDevelop.Autotools.MakefileInfo RelativeMakefileName="./Makefile.am" SyncReferences="true" IsAutotoolsProject="true" RelativeConfigureInPath="../">
           <BuildFilesVar Sync="true" Name="CSFILES" />
           <DeployFilesVar />
           <ResourcesVar />

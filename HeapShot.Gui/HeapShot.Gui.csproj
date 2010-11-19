@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>HeapShot.Gui</RootNamespace>
     <AssemblyName>HeapShot.Gui</AssemblyName>
-    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -70,7 +70,7 @@
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
-        <MonoDevelop.Autotools.MakefileInfo IntegrationEnabled="true" RelativeMakefileName="./Makefile.am" SyncReferences="true" IsAutotoolsProject="true" RelativeConfigureInPath="../">
+        <MonoDevelop.Autotools.MakefileInfo RelativeMakefileName="./Makefile.am" SyncReferences="true" IsAutotoolsProject="true" RelativeConfigureInPath="../">
           <BuildFilesVar Sync="true" Name="CSFILES" />
           <DeployFilesVar />
           <ResourcesVar Sync="true" Name="RES" />

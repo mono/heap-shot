@@ -106,9 +106,9 @@ namespace HeapShot {
 				}
 			} else {
 				// Show a summary
-				int tot = 0;
+				long tot = 0;
 				foreach (int t in omap.GetTypes ()) {
-					int no = omap.GetObjectCountForType (t);
+					long no = omap.GetObjectCountForType (t);
 					Console.WriteLine ("{0} {1} {2}", no, omap.GetObjectSizeForType (t), omap.GetTypeName (t));
 					tot += no;
 				}

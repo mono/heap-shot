@@ -29,11 +29,11 @@ namespace HeapShot.Reader
 {
 	public struct TypeInfo
 	{
-		public uint Code;
+		public long Code;
 		public string Name;
 		public int FieldsIndex;
 		public int FieldsCount;
-		public int ObjectCount;
-		public uint TotalSize;
+		public long ObjectCount;
+		public ulong TotalSize;
 	}
 }

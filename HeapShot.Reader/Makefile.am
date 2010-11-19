@@ -5,12 +5,18 @@ CSFLAGS = -target:library
 TARGET = HeapShot.Reader.dll
 
 CSFILES =  \
+	Buffer.cs \
+	Event.cs \
+	EventVisitor.cs \
 	FieldInfo.cs \
+	Header.cs \
+	LogBuffer.cs \
 	ObjectInfo.cs \
 	ObjectMapFileReader.cs \
 	ObjectReference.cs \
 	ReferenceNode.cs \
-	TypeInfo.cs
+	TypeInfo.cs \
+	Util.cs
 	
 
 REFS = -r:System

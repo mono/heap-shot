@@ -34,11 +34,11 @@ namespace HeapShot.Reader
 		ObjectMapReader map;
 		
 		public string TypeName;
-		public int RefCount;
+		public long RefCount;
 		public int RefsToParent;
 		public int RefsToRoot;
-		public uint RootMemory;
-		public uint TotalMemory;
+		public ulong RootMemory;
+		public ulong TotalMemory;
 		int type;
 		bool globalRefs;
 		
@@ -56,7 +56,7 @@ namespace HeapShot.Reader
 		}
 		
 		public uint AverageSize {
-			get { return RefCount != 0 ? (uint) (TotalMemory / RefCount) : 0; }
+			get { return RefCount != 0 ? (uint) (TotalMemory / (ulong)RefCount) : 0; }
 		}
 		
 		public ICollection FieldReferences {
@@ -76,7 +76,7 @@ namespace HeapShot.Reader
 			AddReference (-1, obj, 1, map.GetObjectSize (obj), null);
 		}
 		
-		void AddReference (int parentObject, int obj, int refsToRoot, uint rootMem, string fieldName)
+		void AddReference (int parentObject, int obj, int refsToRoot, ulong rootMem, string fieldName)
 		{
 			if (parentObject != -1 && !parentObjects.ContainsKey (parentObject)) {
 				parentObjects [parentObject] = parentObject;
@@ -221,7 +221,7 @@ namespace HeapShot.Reader
 	public struct RootRefInfo
 	{
 		public int References;
-		public uint Memory;
+		public ulong Memory;
 	}
 	
 	class ReferenceSorter: IComparer

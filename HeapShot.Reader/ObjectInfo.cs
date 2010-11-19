@@ -29,9 +29,9 @@ namespace HeapShot.Reader {
 	
 	public struct ObjectInfo
 	{
-		public uint Code;
+		public long Code;
 		public int Type;
-		public uint Size;
+		public ulong Size;
 		public int RefsIndex;
 		public int RefsCount;
 		public int InverseRefsIndex;

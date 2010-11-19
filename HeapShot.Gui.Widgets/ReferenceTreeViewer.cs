@@ -8,6 +8,8 @@ namespace HeapShot.Gui.Widgets
 {
 	public delegate void ProgressEventHandler (int current, int max, string message);
 	
+	[System.ComponentModel.Category("widget")]
+	[System.ComponentModel.ToolboxItem(true)]
 	public partial class ReferenceTreeViewer : Gtk.Bin
 	{
 		Gtk.TreeStore store;
