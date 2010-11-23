@@ -443,20 +443,62 @@ namespace MonoDevelop.Profiler
 		public const byte TYPE_HEAP_START = 0 << 4;
 		public const byte TYPE_HEAP_END = 1 << 4;
 		public const byte TYPE_HEAP_OBJECT = 2 << 4;
+		public const byte TYPE_HEAP_ROOT = 3 << 4;
 		
+		public readonly EventType Type;
 		public readonly long Object; // the object as a difference from obj_base
 		public readonly long Class; // the object MonoClass* as a difference from ptr_base
 		public readonly ulong Size; // size of the object on the heap
 		public readonly ulong[] RelOffset;
 		public readonly long[] ObjectRefs; // object referenced as a difference from obj_base
+		public readonly long[] RootRefs; // root references
+		public readonly RootType[] RootRefTypes;
+		public readonly ulong[] RootRefExtraInfos;
+		
+		public enum RootType
+		{
+			Pinning  = 1 << 8,
+			WeakRef  = 2 << 8,
+			Interior = 4 << 8,
+			/* the above are flags, the type is in the low 2 bytes */
+			Stack = 0,
+			Finalizer = 1,
+			Handle = 2,
+			Other = 3,
+			Misc = 4, /* could be stack, handle, etc. */
+			TypeMask = 0xff
+		}
+		
+		public enum EventType
+		{
+			Start,
+			End,
+			Root,
+			Object
+		};
 		
 		HeapEvent (BinaryReader reader, byte exinfo)
 		{
 			if (exinfo == TYPE_HEAP_START) {
+				Type = EventType.Start;
 				TimeDiff = reader.ReadULeb128 ();
 			} else if (exinfo == TYPE_HEAP_END) {
+				Type = EventType.End;
 				TimeDiff = reader.ReadULeb128 ();
+			} else if (exinfo == TYPE_HEAP_ROOT) {
+				Type = EventType.Root;
+				ulong nroots = reader.ReadULeb128 ();
+				ulong gcs = reader.ReadULeb128 ();
+				RootRefs = new long [nroots];
+				RootRefTypes = new RootType [nroots];
+				RootRefExtraInfos = new ulong [nroots];
+				for (ulong n=0; n<nroots; n++) {
+					RootRefs [n] = reader.ReadSLeb128 ();
+					RootRefTypes [n] = (RootType) reader.ReadULeb128 ();
+					RootRefExtraInfos [n] = reader.ReadULeb128 ();
+				}
 			} else if (exinfo == TYPE_HEAP_OBJECT) {
+				Type = EventType.Object;
 				Object = reader.ReadSLeb128 ();
 				Class = reader.ReadSLeb128 ();
 				Size = reader.ReadULeb128 ();

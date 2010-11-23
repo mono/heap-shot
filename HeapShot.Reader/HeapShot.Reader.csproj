@@ -52,6 +52,7 @@
     <Compile Include="Header.cs" />
     <Compile Include="Graph.cs" />
     <Compile Include="IProgressListener.cs" />
+    <Compile Include="HeapSnapshot.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

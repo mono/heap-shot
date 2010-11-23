@@ -33,7 +33,7 @@ namespace HeapShot.Reader
 	{
 		static List<FieldReference> emptyFieldReferences = new List<HeapShot.Reader.FieldReference> ();
 		bool inverse;
-		ObjectMapReader map;
+		HeapSnapshot map;
 		
 		public string TypeName;
 		public long RefCount;
@@ -50,7 +50,7 @@ namespace HeapShot.Reader
 		Dictionary<int,int> parentObjects = new Dictionary<int,int> ();
 		PathTree pathTree;
 		
-		public ReferenceNode (ObjectMapReader map, int type, bool inverse)
+		public ReferenceNode (HeapSnapshot map, int type, bool inverse)
 		{
 			this.map = map;
 			this.type = type;
@@ -58,7 +58,7 @@ namespace HeapShot.Reader
 			this.inverse = inverse;
 		}
 		
-		public ReferenceNode (ObjectMapReader map, int type, PathTree pathTree)
+		public ReferenceNode (HeapSnapshot map, int type, PathTree pathTree)
 		{
 			this.map = map;
 			this.type = type;

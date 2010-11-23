@@ -33,7 +33,7 @@ namespace HeapShot.Gui.Widgets
 		uint tipTimeoutId;
 		const int TipTimer = 800;
 		
-		ObjectMapReader file;
+		HeapSnapshot file;
 		string typeName;
 		
 		public event ProgressEventHandler ProgressEvent;
@@ -145,7 +145,7 @@ namespace HeapShot.Gui.Widgets
 			}
 		}
 		
-		public void FillAllTypes (ObjectMapReader file)
+		public void FillAllTypes (HeapSnapshot file)
 		{
 			this.file = file;
 			this.typeName = null;
@@ -172,7 +172,7 @@ namespace HeapShot.Gui.Widgets
 			foreach (int t in file.GetTypes ()) {
 				tot++;
 				if (++n == 20) {
-					Console.WriteLine ("pp: " + tot);
+//					Console.WriteLine ("pp: " + tot);
 /*					if (ProgressEvent != null) {
 						ProgressEvent (n, file.GetTypeCount (), null);
 					}
@@ -195,7 +195,7 @@ namespace HeapShot.Gui.Widgets
 			loading = false;
 		}
 		
-		public void FillType (ObjectMapReader file, string typeName)
+		public void FillType (HeapSnapshot file, string typeName)
 		{
 			this.typeName = typeName;
 			this.file = file;
@@ -209,7 +209,7 @@ namespace HeapShot.Gui.Widgets
 				treeview.ExpandRow (store.GetPath (iter), false);
 		}
 		
-		TreeIter InternalFillType (ObjectMapReader file, int type)
+		TreeIter InternalFillType (HeapSnapshot file, int type)
 		{
 			ReferenceNode node;
 			if (checkPurge.Active) {

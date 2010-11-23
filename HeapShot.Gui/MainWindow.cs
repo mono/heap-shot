@@ -75,7 +75,7 @@ public partial class MainWindow: Gtk.Window
 				dlg.Destroy ();
 			}
 		}
-		ObjectMapReader map = ObjectMapReader.CreateProcessSnapshot (processId);
+		HeapSnapshot map = ObjectMapReader.CreateProcessSnapshot (processId);
 		viewer.AddSnapshot (map);
 		viewer.Sensitive = true;
 	}

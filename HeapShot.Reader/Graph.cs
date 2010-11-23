@@ -15,9 +15,9 @@ namespace HeapShot.Reader.Graphs
 		Dictionary<int,int> added = new Dictionary<int,int> ();
 		Hashtable visitedItems = new Hashtable ();
 		
-		ObjectMapReader map;
+		HeapSnapshot map;
 		
-		public Graph (ObjectMapReader map)
+		public Graph (HeapSnapshot map)
 		{
 			this.map = map;
 		}

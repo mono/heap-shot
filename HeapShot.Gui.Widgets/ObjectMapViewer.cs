@@ -13,9 +13,9 @@ namespace HeapShot.Gui.Widgets
 	public partial class ObjectMapViewer : Gtk.Bin
 	{
 		ListStore fileStore;
-		ObjectMapReader baseMap;
+		HeapSnapshot baseMap;
 		ArrayList difs = new ArrayList ();
-		ObjectMapReader lastMap;
+		HeapSnapshot lastMap;
 		
 		public ObjectMapViewer()
 		{
@@ -53,17 +53,18 @@ namespace HeapShot.Gui.Widgets
 		public void AddFile (string fileName)
 		{
 			ObjectMapReader map = new ObjectMapReader (fileName);
-			AddSnapshot (map);
+			foreach (HeapSnapshot s in map.HeapShots)
+				AddSnapshot (s);
 		}
 		
-		public void AddSnapshot (ObjectMapReader map)
+		public void AddSnapshot (HeapSnapshot map)
 		{
 			fileStore.AppendValues (map, System.IO.Path.GetFileName (map.Name), false);
 		}
 		
 		protected virtual void OnSelectionChanged (object sender, EventArgs args)
 		{
-			ObjectMapReader map = GetCurrentObjectMap ();
+			HeapSnapshot map = GetCurrentObjectMap ();
 			if (map == lastMap)
 				return;
 				
@@ -103,7 +104,7 @@ namespace HeapShot.Gui.Widgets
 			TreeIter iter;
 			if (fileStore.GetIterFirst (out iter)) {
 				do {
-					ObjectMapReader map = (ObjectMapReader) fileStore.GetValue (iter, 0);
+					HeapSnapshot map = (HeapSnapshot) fileStore.GetValue (iter, 0);
 					if (map == baseMap)
 						fileStore.SetValue (iter, 2, true);
 					else
@@ -113,14 +114,14 @@ namespace HeapShot.Gui.Widgets
 			}
 		}
 		
-		public ObjectMapReader GetCurrentObjectMap ()
+		public HeapSnapshot GetCurrentObjectMap ()
 		{
 			Gtk.TreeModel foo;
 			Gtk.TreeIter iter;
 			if (!fileList.Selection.GetSelected (out foo, out iter))
 				return null;
 			
-			ObjectMapReader map = (ObjectMapReader) fileStore.GetValue (iter, 0);
+			HeapSnapshot map = (HeapSnapshot) fileStore.GetValue (iter, 0);
 			if (baseMap != null && baseMap != map)
 				return GetCombinedMap (map, baseMap);
 			else
@@ -166,21 +167,21 @@ namespace HeapShot.Gui.Widgets
 			notebook.Page = i;
 		}
 		
-		ObjectMapReader GetCombinedMap (ObjectMapReader m1, ObjectMapReader m2)
+		HeapSnapshot GetCombinedMap (HeapSnapshot m1, HeapSnapshot m2)
 		{
 			if (m2.Timestamp < m1.Timestamp) {
-				ObjectMapReader tmp = m1;
+				HeapSnapshot tmp = m1;
 				m1 = m2;
 				m2 = tmp;
 			}
 			
-			foreach (ObjectMapReader[] dif in difs) {
+			foreach (HeapSnapshot[] dif in difs) {
 				if (dif[0] == m1 && dif[1] == m2)
 					return dif[2];
 			}
 			
-			ObjectMapReader res = ObjectMapReader.GetDiff (m1, m2);
-			difs.Add (new ObjectMapReader[] { m1, m2, res });
+			HeapSnapshot res = HeapSnapshot.GetDiff (m1, m2);
+			difs.Add (new HeapSnapshot[] { m1, m2, res });
 			return res;
 		}
 	}

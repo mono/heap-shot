@@ -1,7 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <stetic-interface>
+  <configuration>
+    <images-root-path>..</images-root-path>
+  </configuration>
   <import>
     <widget-library name="../../HeapShot.Gui.Widgets/HeapShot.Gui.Widgets.dll" />
+    <widget-library name="../HeapShot.Gui.exe" internal="true" />
   </import>
   <widget class="Gtk.Window" id="MainWindow" design-size="711 466">
     <action-group name="Default">
@@ -57,7 +61,6 @@
           <widget class="Gtk.Toolbar" id="toolbar1">
             <property name="MemberName" />
             <property name="ShowArrow">False</property>
-            <property name="Tooltips">True</property>
             <property name="ButtonStyle">BothHoriz</property>
             <property name="IconSize">LargeToolbar</property>
             <node name="toolbar1" type="Toolbar">
@@ -113,7 +116,6 @@
     <property name="WindowPosition">CenterOnParent</property>
     <property name="Buttons">2</property>
     <property name="HelpButton">False</property>
-    <property name="HasSeparator">False</property>
     <signal name="Response" handler="OnResponse" />
     <child internal-child="VBox">
       <widget class="Gtk.VBox" id="dialog_VBox">
@@ -142,8 +144,6 @@
               <widget class="Gtk.ScrolledWindow" id="scrolledwindow1">
                 <property name="MemberName" />
                 <property name="CanFocus">True</property>
-                <property name="VscrollbarPolicy">Automatic</property>
-                <property name="HscrollbarPolicy">Automatic</property>
                 <property name="ShadowType">In</property>
                 <child>
                   <widget class="Gtk.TreeView" id="list">
@@ -162,7 +162,7 @@
                 <property name="MemberName" />
                 <property name="WidthRequest">492</property>
                 <property name="Xalign">0</property>
-                <property name="LabelProp" translatable="yes">Only Mono processes started with the option <i>--profile=heap-shot</i> are listed.</property>
+                <property name="LabelProp" translatable="yes">Only Mono processes started with the option --profile=heap-shot are listed.</property>
                 <property name="UseMarkup">True</property>
                 <property name="Wrap">True</property>
               </widget>
@@ -197,7 +197,6 @@
             <property name="UseStock">True</property>
             <property name="Type">StockItem</property>
             <property name="StockId">gtk-cancel</property>
-            <property name="IsDialogButton">True</property>
             <property name="ResponseId">-6</property>
             <property name="label">gtk-cancel</property>
           </widget>
@@ -214,7 +213,6 @@
             <property name="UseStock">True</property>
             <property name="Type">StockItem</property>
             <property name="StockId">gtk-ok</property>
-            <property name="IsDialogButton">True</property>
             <property name="ResponseId">-5</property>
             <property name="label">gtk-ok</property>
           </widget>
