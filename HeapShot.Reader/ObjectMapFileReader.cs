@@ -41,6 +41,13 @@ namespace HeapShot.Reader {
 		long currentPtrBase;
 		long currentObjBase;
 		
+		internal const long UnknownTypeId = -1;
+		
+		internal const long UnknownObjectId = -1;
+		internal const long StackObjectId = -2;
+		
+		long rootId = StackObjectId - 1;
+		
 		HeapShotData currentData;
 		
 		List<HeapSnapshot> shots = new List<HeapSnapshot> ();
@@ -140,6 +147,8 @@ namespace HeapShot.Reader {
 						ReadLogFileChunk_Type ((MetadataEvent)e);
 					else if (e is HeapEvent)
 						ReadLogFileChunk_Object ((HeapEvent)e);
+					else if (e is GcEvent)
+						ReadGcEvent ((GcEvent)e);
 				}
 			}
 		}
@@ -165,13 +174,18 @@ namespace HeapShot.Reader {
 			currentData.TypesList.Add (ti);
 		}
 		
+		void ReadGcEvent (GcEvent ge)
+		{
+			if (ge.EventType == GcEvent.GcEventType.Start)
+				currentData.ResetHeapData ();
+		}
+		
 		int shotCount;
 		
 		private void ReadLogFileChunk_Object (HeapEvent he)
 		{
 			if (he.Type == HeapEvent.EventType.Start) {
 				Console.WriteLine ("ppe: START");
-				currentData.ResetHeapData ();
 				return;
 			}
 			else if (he.Type == HeapEvent.EventType.End) {
@@ -203,26 +217,27 @@ namespace HeapShot.Reader {
 				currentData.ObjectsList.Add (ob);
 			}
 			else if (he.Type == HeapEvent.EventType.Root) {
-				Console.WriteLine ("ppe: ROOt");
-/*				for (int n=0; n<he.RootRefs.Length; n++) {
+				for (int n=0; n<he.RootRefs.Length; n++) {
 					ObjectInfo ob = new ObjectInfo ();
-					ob.Code = currentObjBase + he.RootRefs [n];
 					ob.Size = 0;
 					ob.RefsIndex = currentData.ReferenceCodes.Count;
 					ob.RefsCount = 1;
-					long type = -1;
+					long type = UnknownTypeId;
 					switch (he.RootRefTypes [n] & HeapEvent.RootType.TypeMask) {
-					case HeapEvent.RootType.Stack: type = -2; break;
-					case HeapEvent.RootType.Finalizer: type = -3; break;
-					case HeapEvent.RootType.Handle: type = -4; break;
-					case HeapEvent.RootType.Other: type = -5; break;
-					case HeapEvent.RootType.Misc: type = -6; break;
+					case HeapEvent.RootType.Stack: type = -2; ob.Code = StackObjectId; break;
+					case HeapEvent.RootType.Finalizer: type = -3; ob.Code = --rootId; break;
+					case HeapEvent.RootType.Handle: type = -4; ob.Code = --rootId; break;
+					case HeapEvent.RootType.Other: type = -5; ob.Code = --rootId; break;
+					case HeapEvent.RootType.Misc: type = -6; ob.Code = --rootId; break;
+					default:
+						Console.WriteLine ("pp1:"); break;
 					}
 					currentData.ObjectTypeCodes.Add (type);
 					currentData.ReferenceCodes.Add (he.RootRefs [n] + currentObjBase);
 					currentData.FieldReferenceCodes.Add (0);
 					currentData.ObjectsList.Add (ob);
-				}*/
+					currentData.RealObjectCount++;
+				}
 			}
 		}
 	}
@@ -242,11 +257,20 @@ namespace HeapShot.Reader {
 		
 		public void ResetHeapData ()
 		{
-			ObjectsList = new List<ObjectInfo> ();
-			ObjectTypeCodes = new List<long> ();
-			ReferenceCodes = new List<long> ();
-			FieldReferenceCodes = new List<ulong> ();
-			RealObjectCount = 0;
+			ObjectsList.Clear ();
+			ObjectTypeCodes.Clear ();
+			ReferenceCodes.Clear ();
+			FieldReferenceCodes.Clear ();
+			RealObjectCount = 1;
+			
+			// The 'unknown' object
+			ObjectInfo ob = new ObjectInfo ();
+			ob.Code = ObjectMapReader.UnknownObjectId;
+			ob.Size = 0;
+			ob.RefsIndex = 0;
+			ob.RefsCount = 0;
+			ObjectTypeCodes.Add (ObjectMapReader.UnknownTypeId);
+			ObjectsList.Add (ob);
 		}
 		
 		public int RealObjectCount;

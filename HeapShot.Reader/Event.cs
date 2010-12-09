@@ -175,13 +175,26 @@ namespace MonoDevelop.Profiler
 	
 	public class GcEvent : Event
 	{
-		public readonly ulong GcEventType; //  GC event (MONO_GC_EVENT_* from profiler.h)
+		public readonly GcEventType EventType; //  GC event (MONO_GC_EVENT_* from profiler.h)
 		public readonly ulong Generation;  // GC generation event refers to
+		
+		public enum GcEventType {
+			Start,
+			MarkStart,
+			MarkEnd,
+			ReclaimStart,
+			ReclaimEnd,
+			End,
+			PreStopWorld,
+			PostStopWorld,
+			PreStartWorld,
+			PostStartWorld
+		}
 		
 		GcEvent (BinaryReader reader)
 		{
 			TimeDiff = reader.ReadULeb128 ();
-			GcEventType = reader.ReadULeb128 ();
+			EventType = (GcEventType) reader.ReadULeb128 ();
 			Generation = reader.ReadULeb128 ();
 		}
 

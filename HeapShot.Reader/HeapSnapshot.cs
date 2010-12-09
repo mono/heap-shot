@@ -208,7 +208,7 @@ namespace HeapShot.Reader {
 					objects [i].InverseRefsCount++;
 				} else {
 					//Console.WriteLine ("Referenced object not found: " + mergedReferenceCodes[n]);
-					references[n] = -1;
+					references[n] = 0;
 					missingRefs++;
 				}
 			}
