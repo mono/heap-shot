@@ -27,13 +27,16 @@ using System.IO;
 using System.Text.RegularExpressions;
 using MonoDevelop.Profiler;
 using HeapShot.Reader.Graphs;
+using System.Net.Sockets;
 
 namespace HeapShot.Reader {
 
-	public class ObjectMapReader 
+	public class ObjectMapReader: IDisposable
 	{
 		const string log_file_label = "heap-shot logfile";
 		
+		int port = -1;
+		int readBuffers;
 		string name;
 		DateTime timestamp;
 		ulong totalMemory;
@@ -49,8 +52,9 @@ namespace HeapShot.Reader {
 		long rootId = StackObjectId - 1;
 		
 		HeapShotData currentData;
-		
 		List<HeapSnapshot> shots = new List<HeapSnapshot> ();
+		
+		public event EventHandler<HeapShotEventArgs> HeapSnapshotAdded;
 		
 		internal ObjectMapReader ()
 		{
@@ -60,17 +64,56 @@ namespace HeapShot.Reader {
 		{
 			this.name = filename;
 			
-			Stream stream;
-			stream = new FileStream (filename, FileMode.Open, FileAccess.Read);
-
-			BinaryReader reader;
-			reader = new BinaryReader (stream);
+			currentData = new HeapShotData ();
 			
-			ReadLogFile (reader);
-			
-			reader.Close ();
-			
-			timestamp = File.GetLastWriteTime (filename);
+			// Some stock types
+			currentData.TypesList.Add (new TypeInfo () { Code = -1, Name = "<Unknown>" });   // 0
+			currentData.TypesList.Add (new TypeInfo () { Code = -2, Name = "<Stack>" });     // 1
+			currentData.TypesList.Add (new TypeInfo () { Code = -3, Name = "<Finalizer>" }); // 2
+			currentData.TypesList.Add (new TypeInfo () { Code = -4, Name = "<Handle>" });    // 3
+			currentData.TypesList.Add (new TypeInfo () { Code = -5, Name = "<Other Root>" });      // 4
+			currentData.TypesList.Add (new TypeInfo () { Code = -6, Name = "<Misc Root>" }); // 5
+		}
+		
+		public void Dispose ()
+		{
+		}
+		
+		public bool Read ()
+		{
+			try {
+				if (!File.Exists (name))
+					return false;
+				DateTime tim = File.GetLastWriteTime (name);
+				if (tim == timestamp)
+					return true;
+				
+				Stream stream = new FileStream (name, FileMode.Open, FileAccess.Read);
+	
+				BinaryReader reader;
+				reader = new BinaryReader (stream);
+				ReadLogFile (reader);
+				reader.Close ();
+				timestamp = File.GetLastWriteTime (name);
+				
+				return true;
+			} catch (Exception ex) {
+				Console.WriteLine (ex);
+				return false;
+			}
+		}
+		
+		public bool WaitForHeapShot (int timeout)
+		{
+			int ns = shots.Count;
+			DateTime tlimit = DateTime.Now + TimeSpan.FromMilliseconds (timeout);
+			while (DateTime.Now < tlimit) {
+				Read ();
+				if (shots.Count > ns)
+					return true;
+				System.Threading.Thread.Sleep (500);
+			}
+			return false;
 		}
 		
 		public string Name {
@@ -85,36 +128,21 @@ namespace HeapShot.Reader {
 			get { return shots; }
 		}
 		
-		public static HeapSnapshot CreateProcessSnapshot (int pid)
+		public void ForceSnapshot ()
 		{
-/*			string dumpFile = "/tmp/heap-shot-dump";
-			if (File.Exists (dumpFile))
-				File.Delete (dumpFile);
-			System.Diagnostics.Process.Start ("kill", "-PROF " + pid);
-			
-			string fileName = null;
-			int tries = 40;
-			
-			while (fileName == null) {
-				if (--tries == 0)
-					return null;
-
-				System.Threading.Thread.Sleep (500);
-				if (!File.Exists (dumpFile))
-					continue;
-					
-				StreamReader freader = null;
-				try {
-					freader = new StreamReader (dumpFile);
-					fileName = freader.ReadToEnd ();
-					freader.Close ();
-				} catch {
-					if (freader != null)
-						freader.Close ();
+			if (port == -1) {
+				Read ();
+				if (port == -1)
+					throw new Exception ("Log file could not be opened");
+			}
+			using (TcpClient client = new TcpClient ()) {
+				client.Connect ("127.0.0.1", port);
+				using (StreamWriter sw = new StreamWriter (client.GetStream ())) {
+					sw.WriteLine ("heapshot");
+					sw.Flush ();
 				}
 			}
-			return new ObjectMapReader (fileName);*/
-			return null;
+			System.Threading.Thread.Sleep (3000);
 		}
 
 		//
@@ -123,20 +151,18 @@ namespace HeapShot.Reader {
 
 		private void ReadLogFile (BinaryReader reader)
 		{
-			currentData = new HeapShotData ();
-			
-			// Some stock types
-			currentData.TypesList.Add (new TypeInfo () { Code = -1, Name = "<Unknown>" });   // 0
-			currentData.TypesList.Add (new TypeInfo () { Code = -2, Name = "<Stack>" });     // 1
-			currentData.TypesList.Add (new TypeInfo () { Code = -3, Name = "<Finalizer>" }); // 2
-			currentData.TypesList.Add (new TypeInfo () { Code = -4, Name = "<Handle>" });    // 3
-			currentData.TypesList.Add (new TypeInfo () { Code = -5, Name = "<Other Root>" });      // 4
-			currentData.TypesList.Add (new TypeInfo () { Code = -6, Name = "<Misc Root>" }); // 5
-			
+			int nbuffer = 0;
 			Header h = Header.Read (reader);
+			port = h.Port;
+			
 			while (reader.BaseStream.Position < reader.BaseStream.Length) {
 				BufferHeader bheader = BufferHeader.Read (reader);
 				var endPos = reader.BaseStream.Position + bheader.Length;
+				if (++nbuffer <= readBuffers) {
+					reader.BaseStream.Position = endPos;
+					continue;
+				}
+				readBuffers++;
 //				Console.WriteLine ("BUFFER ThreadId: " + bheader.ThreadId);
 				currentObjBase = bheader.ObjBase;
 				currentPtrBase = bheader.PtrBase;
@@ -193,7 +219,7 @@ namespace HeapShot.Reader {
 				HeapSnapshot shot = new HeapSnapshot ();
 				shotCount++;
 				shot.Build (shotCount.ToString (), currentData);
-				shots.Add (shot);
+				AddShot (shot);
 			}
 			if (he.Type == HeapEvent.EventType.Object) {
 				ObjectInfo ob = new ObjectInfo ();
@@ -239,6 +265,13 @@ namespace HeapShot.Reader {
 					currentData.RealObjectCount++;
 				}
 			}
+		}
+		
+		void AddShot (HeapSnapshot shot)
+		{
+			shots.Add (shot);
+			if (HeapSnapshotAdded != null)
+				HeapSnapshotAdded (this, new HeapShotEventArgs (shot));
 		}
 	}
 	

@@ -41,6 +41,7 @@ namespace MonoDevelop.Profiler
 		public readonly int TimerOverhead; // approximate overhead in nanoseconds of the timer
 		public readonly int Flags; // file format flags, should be 0 for now
 		public readonly int Pid; // pid of the profiled process
+		public readonly int Port; // tcp port for server if != 0
 		public readonly int SysId; //  operating system and architecture identifier
 		
 		protected Header (BinaryReader reader)
@@ -56,7 +57,8 @@ namespace MonoDevelop.Profiler
 			TimerOverhead = reader.ReadInt32 ();
 			Flags = reader.ReadInt32 ();
 			Pid = reader.ReadInt32 ();
-			SysId = reader.ReadInt32 ();
+			Port = reader.ReadUInt16 ();
+			SysId = reader.ReadUInt16 ();
 		}
 		
 		public static Header Read (BinaryReader reader)

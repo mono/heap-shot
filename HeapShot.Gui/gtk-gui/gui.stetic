@@ -9,11 +9,6 @@
   </import>
   <widget class="Gtk.Window" id="MainWindow" design-size="711 466">
     <action-group name="Default">
-      <action id="File">
-        <property name="Type">Action</property>
-        <property name="Label">File</property>
-        <property name="ShortLabel">File</property>
-      </action>
       <action id="open">
         <property name="Type">Action</property>
         <property name="IsImportant">True</property>
@@ -28,19 +23,51 @@
         <property name="StockId">gtk-quit</property>
         <signal name="Activated" handler="OnQuitActivated" />
       </action>
-      <action id="MemorySnapshot">
+      <action id="ForceHeapSnapshotAction">
         <property name="Type">Action</property>
         <property name="IsImportant">True</property>
-        <property name="Label">Memory snapshot</property>
+        <property name="Label">Force Heap Snapshot</property>
         <property name="ShortLabel">Memory snapshot</property>
         <signal name="Activated" handler="OnMemorySnapshotActivated" />
       </action>
-      <action id="new">
+      <action id="executeAction">
         <property name="Type">Action</property>
         <property name="IsImportant">True</property>
-        <property name="Label" />
-        <property name="StockId">gtk-new</property>
-        <signal name="Activated" handler="OnNewActivated" />
+        <property name="Label" translatable="yes">Run</property>
+        <property name="ShortLabel" translatable="yes">Run</property>
+        <property name="StockId">gtk-execute</property>
+        <signal name="Activated" handler="OnExecuteActionActivated" />
+      </action>
+      <action id="stopAction">
+        <property name="Type">Action</property>
+        <property name="Label" translatable="yes" />
+        <property name="StockId">gtk-stop</property>
+        <signal name="Activated" handler="OnStopActionActivated" />
+      </action>
+      <action id="FileAction">
+        <property name="Type">Action</property>
+        <property name="Label" translatable="yes">File</property>
+        <property name="ShortLabel" translatable="yes">File</property>
+      </action>
+      <action id="SnapshotAction">
+        <property name="Type">Action</property>
+        <property name="Label" translatable="yes">Snapshot</property>
+        <property name="ShortLabel" translatable="yes">Snapshot</property>
+      </action>
+      <action id="LoadHeapSnapshotsAction">
+        <property name="Type">Action</property>
+        <property name="Label" translatable="yes">Load Heap Snapshots</property>
+        <property name="ShortLabel" translatable="yes">Load Heap Snapshots</property>
+      </action>
+      <action id="ProfileAction">
+        <property name="Type">Action</property>
+        <property name="Label" translatable="yes">Profile</property>
+        <property name="ShortLabel" translatable="yes">Profile</property>
+      </action>
+      <action id="FileAction1">
+        <property name="Type">Action</property>
+        <property name="Label" translatable="yes">File</property>
+        <property name="ShortLabel" translatable="yes">File</property>
       </action>
     </action-group>
     <property name="MemberName" />
@@ -56,7 +83,32 @@
     <child>
       <widget class="Gtk.VBox" id="vbox1">
         <property name="MemberName" />
-        <property name="Spacing">6</property>
+        <child>
+          <widget class="Gtk.MenuBar" id="menubar1">
+            <property name="MemberName" />
+            <node name="menubar1" type="Menubar">
+              <node type="Menu" action="FileAction1">
+                <node type="Menuitem" action="open" />
+                <node type="Separator" />
+                <node type="Menuitem" action="quit" />
+              </node>
+              <node type="Menu" action="ProfileAction">
+                <node type="Menuitem" action="executeAction" />
+                <node type="Menuitem" action="stopAction" />
+                <node type="Separator" />
+                <node type="Menuitem" action="ForceHeapSnapshotAction" />
+                <node type="Menuitem" action="LoadHeapSnapshotsAction" />
+              </node>
+              <node type="Menu" />
+            </node>
+          </widget>
+          <packing>
+            <property name="Position">0</property>
+            <property name="AutoSize">True</property>
+            <property name="Expand">False</property>
+            <property name="Fill">False</property>
+          </packing>
+        </child>
         <child>
           <widget class="Gtk.Toolbar" id="toolbar1">
             <property name="MemberName" />
@@ -64,15 +116,15 @@
             <property name="ButtonStyle">BothHoriz</property>
             <property name="IconSize">LargeToolbar</property>
             <node name="toolbar1" type="Toolbar">
-              <node type="Toolitem" action="new" />
               <node type="Toolitem" action="open" />
-              <node type="Toolitem" action="quit" />
               <node type="Separator" />
-              <node type="Toolitem" action="MemorySnapshot" />
+              <node type="Toolitem" action="executeAction" />
+              <node type="Toolitem" action="stopAction" />
+              <node type="Toolitem" action="ForceHeapSnapshotAction" />
             </node>
           </widget>
           <packing>
-            <property name="Position">0</property>
+            <property name="Position">1</property>
             <property name="AutoSize">True</property>
             <property name="Expand">False</property>
             <property name="Fill">False</property>
@@ -84,7 +136,7 @@
             <property name="Events">ButtonPressMask</property>
           </widget>
           <packing>
-            <property name="Position">1</property>
+            <property name="Position">2</property>
             <property name="AutoSize">True</property>
           </packing>
         </child>
@@ -100,7 +152,7 @@
             </child>
           </widget>
           <packing>
-            <property name="Position">2</property>
+            <property name="Position">3</property>
             <property name="AutoSize">True</property>
             <property name="Expand">False</property>
             <property name="Fill">False</property>

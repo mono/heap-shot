@@ -39,7 +39,8 @@ namespace MonoDevelop.Profiler
 		Method     = 3,
 		Exception  = 4,
 		Monitor    = 5,
-		Heap       = 6
+		Heap       = 6,
+		Sample     = 7
 	}
 	
 	public class Backtrace
@@ -106,6 +107,8 @@ namespace MonoDevelop.Profiler
 				return MethodEvent.Read (reader, extendedInfo); 
 			case EventType.Monitor:
 				return MonitiorEvent.Read (reader, extendedInfo); 
+			case EventType.Sample:
+				return SampleEvent.Read (reader, extendedInfo);
 			}
 			throw new InvalidOperationException ("invalid event type " + type);	
 		}
@@ -501,7 +504,7 @@ namespace MonoDevelop.Profiler
 			} else if (exinfo == TYPE_HEAP_ROOT) {
 				Type = EventType.Root;
 				ulong nroots = reader.ReadULeb128 ();
-				ulong gcs = reader.ReadULeb128 ();
+				reader.ReadULeb128 (); // gcs
 				RootRefs = new long [nroots];
 				RootRefTypes = new RootType [nroots];
 				RootRefExtraInfos = new ulong [nroots];
@@ -535,4 +538,97 @@ namespace MonoDevelop.Profiler
 			return visitor.Visit (this);
 		}
 	}
+	
+	public abstract class SampleEvent: Event
+	{
+		public const byte TYPE_SAMPLE_HIT = 0 << 4;
+		public const byte TYPE_SAMPLE_USYM = 1 << 4;
+		public const byte TYPE_SAMPLE_UBIN = 2 << 4;
+		
+		public static Event Read (BinaryReader reader, byte exinfo)
+		{
+			if (exinfo == TYPE_SAMPLE_HIT)
+				return new HitSampleEvent (reader);
+			else if (exinfo == TYPE_SAMPLE_USYM)
+				return new USymSampleEvent (reader);
+			else if (exinfo == TYPE_SAMPLE_UBIN)
+				return new UBinSampleEvent (reader);
+			else
+				throw new Exception ("Unknown sample event type: " + exinfo);
+		}
+	}
+	
+	public class HitSampleEvent: SampleEvent
+	{
+		public readonly SampleType SampleType;
+		public readonly ulong Timestamp;
+		public readonly long[] InstructionPointers;
+		
+		public HitSampleEvent (BinaryReader reader)
+		{
+			SampleType = (SampleType) reader.ReadULeb128 ();
+			Timestamp = reader.ReadULeb128 ();
+			ulong count = reader.ReadULeb128 ();
+			InstructionPointers = new long [count];
+			for (uint n=0; n<count; n++)
+				InstructionPointers [n] = reader.ReadSLeb128 ();
+		}
+		
+		public override object Accept (EventVisitor visitor)
+		{
+			return visitor.Visit (this);
+		}
+	}
+	
+	public class USymSampleEvent: SampleEvent
+	{
+		public readonly long Address;
+		public readonly ulong Size;
+		public readonly string Name;
+		
+		public USymSampleEvent (BinaryReader reader)
+		{
+			Address = reader.ReadSLeb128 ();
+			Size = reader.ReadULeb128 ();
+			Name = reader.ReadNullTerminatedString ();
+		}
+		
+		public override object Accept (EventVisitor visitor)
+		{
+			return visitor.Visit (this);
+		}
+	}
+	
+	public class UBinSampleEvent: SampleEvent
+	{
+		public readonly long Address;
+		public readonly ulong Offset;
+		public readonly ulong Size;
+		public readonly string Name;
+		
+		public UBinSampleEvent (BinaryReader reader)
+		{
+			TimeDiff = reader.ReadULeb128 ();
+			Address = reader.ReadSLeb128 ();
+			Offset = reader.ReadULeb128 ();
+			Size = reader.ReadULeb128 ();
+			Name = reader.ReadNullTerminatedString ();
+		}
+		
+		public override object Accept (EventVisitor visitor)
+		{
+			return visitor.Visit (this);
+		}
+	}
+	
+	public enum SampleType
+	{
+		SAMPLE_CYCLES = 1,
+		SAMPLE_INSTRUCTIONS = 2,
+		SAMPLE_CACHE_MISSES = 3,
+		SAMPLE_CACHE_REFS = 4,
+		SAMPLE_BRANCHES = 5,
+		SAMPLE_BRANCH_MISSES = 6,
+		SAMPLE_LAST = 7
+	};
 }

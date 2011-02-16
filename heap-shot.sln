@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeapShot.Gui.Widgets", "HeapShot.Gui.Widgets\HeapShot.Gui.Widgets.csproj", "{A283376A-3E30-4276-A3FA-3CC379063EDE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeapShot.Reader", "HeapShot.Reader\HeapShot.Reader.csproj", "{B3DF617E-A397-426C-847B-5D3DCEB57E51}"

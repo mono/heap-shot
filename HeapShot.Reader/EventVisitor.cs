@@ -83,6 +83,21 @@ namespace MonoDevelop.Profiler
 		{
 			return null;
 		}
+
+		public virtual object Visit (HitSampleEvent heapEvent)
+		{
+			return null;
+		}
+
+		public virtual object Visit (USymSampleEvent heapEvent)
+		{
+			return null;
+		}
+
+		public virtual object Visit (UBinSampleEvent heapEvent)
+		{
+			return null;
+		}
 	}
 }
 
