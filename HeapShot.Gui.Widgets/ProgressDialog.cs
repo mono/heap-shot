@@ -14,9 +14,10 @@ namespace HeapShot.Gui.Widgets
 		bool cancelled;
 		int lastp = -1;
 		
-		public ProgressDialog()
+		public ProgressDialog (Gtk.Window parent)
 		{
 			this.Build();
+			this.TransientFor = parent;
 		}
 	
 		public void ReportProgress (string message, double progress)

@@ -213,8 +213,7 @@ namespace HeapShot.Gui.Widgets
 		{
 			ReferenceNode node;
 			if (checkPurge.Active) {
-				ProgressDialog dlg = new ProgressDialog ();
-				dlg.TransientFor = (Gtk.Window) this.Toplevel;
+				ProgressDialog dlg = new ProgressDialog ((Gtk.Window) this.Toplevel);
 				dlg.Show ();
 				while (Gtk.Application.EventsPending ())
 					Gtk.Application.RunIteration ();
@@ -412,10 +411,12 @@ namespace HeapShot.Gui.Widgets
 			string txt = GetTipText (iter, col.SortColumnId, ob);
 			if (lastTipTxt != txt) {
 				HideTipWindow ();
+				lastTipTxt = txt;
+				if (string.IsNullOrEmpty (txt))
+					return false;
 				tipWindow = new TipWindow (txt);
 				tipWindow.Child.ShowAll ();
 			}
-			lastTipTxt = txt;
 			
 			int ox, oy;
 			treeview.GdkWindow.GetOrigin (out ox, out oy);
