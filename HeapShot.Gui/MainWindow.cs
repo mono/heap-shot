@@ -101,6 +101,7 @@ public partial class MainWindow: Gtk.Window
 		stopAction.Sensitive = false;
 		executeAction.Sensitive = true;
 		ForceHeapSnapshotAction.Sensitive = false;
+		mapReader.Read ();
 	}
 
 	protected virtual void OnOpenActivated(object sender, System.EventArgs e)

@@ -36,7 +36,10 @@ namespace HeapShot.Reader {
 		const string log_file_label = "heap-shot logfile";
 		
 		int port = -1;
-		int readBuffers;
+		long lastReadPosition;
+		bool insideBuffer;
+		long bufferEndPos;
+		
 		string name;
 		DateTime timestamp;
 		ulong totalMemory;
@@ -151,31 +154,37 @@ namespace HeapShot.Reader {
 
 		private void ReadLogFile (BinaryReader reader)
 		{
-			int nbuffer = 0;
-			Header h = Header.Read (reader);
-			port = h.Port;
+			if (lastReadPosition == 0) {
+				Header h = Header.Read (reader);
+				port = h.Port;
+				lastReadPosition = reader.BaseStream.Position;
+			}
+			else {
+				reader.BaseStream.Position = lastReadPosition;
+			}
 			
 			while (reader.BaseStream.Position < reader.BaseStream.Length) {
-				BufferHeader bheader = BufferHeader.Read (reader);
-				var endPos = reader.BaseStream.Position + bheader.Length;
-				if (++nbuffer <= readBuffers) {
-					reader.BaseStream.Position = endPos;
-					continue;
+				if (!insideBuffer) {
+					BufferHeader bheader = BufferHeader.Read (reader);
+					bufferEndPos = reader.BaseStream.Position + bheader.Length;
+//					Console.WriteLine ("BUFFER ThreadId: " + bheader.ThreadId + " End:" + bufferEndPos + " Len:" + reader.BaseStream.Length);
+					currentObjBase = bheader.ObjBase;
+					currentPtrBase = bheader.PtrBase;
+					insideBuffer = true;
+					lastReadPosition = reader.BaseStream.Position;
 				}
-				readBuffers++;
-//				Console.WriteLine ("BUFFER ThreadId: " + bheader.ThreadId);
-				currentObjBase = bheader.ObjBase;
-				currentPtrBase = bheader.PtrBase;
-				while (reader.BaseStream.Position < endPos) {
+				while (reader.BaseStream.Position < bufferEndPos) {
 					Event e = Event.Read (reader);
-//					Console.WriteLine ("Event: " + e);
+//					Console.WriteLine ("Event: " + e + " " + reader.BaseStream.Position);
 					if (e is MetadataEvent)
 						ReadLogFileChunk_Type ((MetadataEvent)e);
 					else if (e is HeapEvent)
 						ReadLogFileChunk_Object ((HeapEvent)e);
 					else if (e is GcEvent)
 						ReadGcEvent ((GcEvent)e);
+					lastReadPosition = reader.BaseStream.Position;
 				}
+				insideBuffer = false;
 			}
 		}
 
