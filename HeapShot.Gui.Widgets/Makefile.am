@@ -1,5 +1,5 @@
 
-CSC = gmcs -debug
+CSC = dmcs -debug
 CSFLAGS = -target:library 
 
 TARGET = HeapShot.Gui.Widgets.dll
@@ -9,7 +9,9 @@ CSFILES =  \
 	gtk-gui/generated.cs \
 	gtk-gui/HeapShot.Gui.Widgets.ObjectMapViewer.cs \
 	gtk-gui/HeapShot.Gui.Widgets.ReferenceTreeViewer.cs \
-	ObjectMapViewer.cs \
+	gtk-gui/HeapShot.Gui.Widgets.ProgressDialog.cs \
+	ObjectMapViewer.cs 	\
+	ProgressDialog.cs	\
 	ReferenceTreeViewer.cs
 
 RES =  \
@@ -20,6 +22,7 @@ RES =  \
 
 REFS =  \
 	-pkg:gtk-sharp-2.0 \
+	-r:Mono.Posix \
 	-r:$(top_builddir)/HeapShot.Reader/HeapShot.Reader.dll \
 	-r:System
 

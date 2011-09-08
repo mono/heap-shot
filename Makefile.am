@@ -1,3 +1,3 @@
 
-SUBDIRS = profiler HeapShot.Reader HeapShot.Gui.Widgets HeapShot.Gui HeapShot
+SUBDIRS = HeapShot.Reader HeapShot.Gui.Widgets HeapShot.Gui 
 

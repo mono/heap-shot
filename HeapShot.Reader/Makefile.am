@@ -1,5 +1,5 @@
 
-CSC = gmcs -debug
+CSC = dmcs -debug
 CSFLAGS = -target:library
 
 TARGET = HeapShot.Reader.dll
@@ -9,7 +9,11 @@ CSFILES =  \
 	Event.cs \
 	EventVisitor.cs \
 	FieldInfo.cs \
+	Graph.cs	\
 	Header.cs \
+	HeapSnapshot.cs\
+	HeapShotEventArgs.cs\
+	IProgressListener.cs\
 	LogBuffer.cs \
 	ObjectInfo.cs \
 	ObjectMapFileReader.cs \
@@ -17,7 +21,7 @@ CSFILES =  \
 	ReferenceNode.cs \
 	TypeInfo.cs \
 	Util.cs
-	
+
 
 REFS = -r:System
 SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)

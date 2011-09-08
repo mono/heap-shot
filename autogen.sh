@@ -8,7 +8,7 @@ ORIGDIR=`pwd`
 cd $srcdir
 PROJECT=heap-shot
 TEST_TYPE=-f
-FILE=profiler/heap-shot.c
+FILE=heap-shot.sln
 
 DIE=0
 
@@ -34,16 +34,6 @@ ACLOCAL=aclocal-1.8
 	echo "Get ftp://sourceware.cygnus.com/pub/automake/automake-1.4.tar.gz"
 	echo "(or a newer version if it is available)"
 	DIE=1
-}
-
-(grep "^AM_PROG_LIBTOOL" configure.in >/dev/null) && {
-  (libtool --version) < /dev/null > /dev/null 2>&1 || {
-    echo
-    echo "**Error**: You must have \`libtool' installed to compile $PROJECT."
-    echo "Get ftp://ftp.gnu.org/pub/gnu/libtool-1.2d.tar.gz"
-    echo "(or a newer version if it is available)"
-    DIE=1
-  }
 }
 
 grep "^AM_GLIB_GNU_GETTEXT" configure.in >/dev/null && {
@@ -117,10 +107,6 @@ do
 	echo "no" | glib-gettextize --force --copy
 	echo "Making $dr/aclocal.m4 writable ..."
 	test -r $dr/aclocal.m4 && chmod u+w $dr/aclocal.m4
-      fi
-      if grep "^AM_PROG_LIBTOOL" configure.in >/dev/null; then
-	echo "Running libtoolize..."
-	libtoolize --force --copy
       fi
       echo "Running $ACLOCAL $aclocalinclude ..."
       $ACLOCAL $aclocalinclude

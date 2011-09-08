@@ -1,5 +1,5 @@
 
-CSC = gmcs -debug
+CSC = dmcs -debug
 CSFLAGS = -target:exe
 
 TARGET = HeapShot.exe
@@ -8,7 +8,7 @@ WRAPPER = heap-shot
 CSFILES =  \
 	HeapShot.cs \
 	ReferenceTreeReport.cs
-	
+
 
 RES = 
 bin_SCRIPTS =			\

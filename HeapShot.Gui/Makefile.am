@@ -1,5 +1,5 @@
 
-CSC = gmcs -debug
+CSC = dmcs -debug
 CSFLAGS = -target:exe
 
 TARGET = HeapShot.Gui.exe
@@ -16,7 +16,7 @@ CSFILES =  \
 
 bin_SCRIPTS =			\
 	$(WRAPPER)
-	
+
 
 REFS =  \
 	-pkg:gtk-sharp-2.0 \

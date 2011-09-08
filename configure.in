@@ -1,11 +1,6 @@
-AC_INIT(profiler/heap-shot.c)
-AM_INIT_AUTOMAKE(heap-shot, 0.1)
+AC_INIT(heap-shot.sln)
+AM_INIT_AUTOMAKE(heap-shot, 0.2)
 AC_PROG_CC
-AM_PROG_LIBTOOL
-
-PKG_CHECK_MODULES(PROFILER, mono-2 glib-2.0)
-
-PKG_CHECK_MODULES(GTK_SHARP, gtk-sharp-2.0)
 
 AC_PATH_PROG(MCS, mcs)
 AC_PATH_PROG(MONO, mono)
@@ -17,7 +12,6 @@ AC_CONFIG_FILES([HeapShot.Gui/heap-shot-gui],[chmod +x HeapShot.Gui/heap-shot-gu
 
 AC_OUTPUT([
 Makefile
-profiler/Makefile
 HeapShot.Reader/Makefile
 HeapShot.Gui.Widgets/Makefile
 HeapShot.Gui/Makefile
