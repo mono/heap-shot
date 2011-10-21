@@ -1,6 +1,30 @@
+// 
+// ReferenceTreeViewer.cs
+//  
+// Copyright (C) 2006-2011 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2011 Xamarin Inc. (http://www.xamarin.com) 
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
 
 using System;
 using Gtk;
+using GLib;
 using Gdk;
 using HeapShot.Reader;
 using System.ComponentModel;
@@ -433,35 +457,35 @@ namespace HeapShot.Gui.Widgets
 			if (node != null) {
 				switch (col) {
 					case 0:
-						return "Type " + node.TypeName;
+						return "Type " + Markup.EscapeText (node.TypeName);
 					case 1: {
 						string pname = GetParentType (iter);
 						if (pname != null) {
 							if (InverseReferences)
-								return string.Format ("There are <b>{0:n0}</b> instances of type <b>{1}</b> which contain references to objects of type <b>{2}</b>", node.RefCount, GetShortName (node.TypeName), pname);
+								return string.Format ("There are <b>{0:n0}</b> instances of type <b>{1}</b> which contain references to objects of type <b>{2}</b>", node.RefCount, Markup.EscapeText (GetShortName (node.TypeName)),  Markup.EscapeText (pname));
 							else
-								return string.Format ("There are <b>{0:n0}</b> instances of type <b>{1}</b> referenced by objects of type <b>{2}</b>", node.RefCount, GetShortName (node.TypeName), pname);
+								return string.Format ("There are <b>{0:n0}</b> instances of type <b>{1}</b> referenced by objects of type <b>{2}</b>", node.RefCount, Markup.EscapeText (GetShortName (node.TypeName)), Markup.EscapeText (pname));
 						} else
-							return string.Format ("There are <b>{0:n0}</b> instances of type <b>{1}</b>.", node.RefCount, GetShortName (node.TypeName));
+							return string.Format ("There are <b>{0:n0}</b> instances of type <b>{1}</b>.", node.RefCount, Markup.EscapeText (GetShortName (node.TypeName)));
 					}
 					case 2: {
 						string pname = GetParentType (iter);
 						if (pname != null)
-							return string.Format ("There are <b>{0:n0}</b> distinct references from objects of type <b>{1}</b> to objects of type <b>{2}</b>", node.RefsToParent, GetShortName (node.TypeName), pname);
+							return string.Format ("There are <b>{0:n0}</b> distinct references from objects of type <b>{1}</b> to objects of type <b>{2}</b>", node.RefsToParent, Markup.EscapeText (GetShortName (node.TypeName)), Markup.EscapeText (pname));
 						else
 							return "";
 					}
 					case 3: {
 						string rname = GetRootType (iter);
 						if (rname != null)
-							return string.Format ("There are <b>{0:n0}</b> indirect references from objects of type <b>{1}</b> to objects of type <b>{2}</b>", node.RefsToRoot, GetShortName (node.TypeName), rname);
+							return string.Format ("There are <b>{0:n0}</b> indirect references from objects of type <b>{1}</b> to objects of type <b>{2}</b>", node.RefsToRoot, Markup.EscapeText (GetShortName (node.TypeName)), Markup.EscapeText (rname));
 						else
 							return "";
 					}
 					case 4: {
 						string rname = GetRootType (iter);
 						if (rname != null)
-							return string.Format ("There are <b>{0:n0}</b> bytes of <b>{1}</b> objects indirectly referenced by <b>{2}</b> objects", node.RootMemory, rname, GetShortName (node.TypeName));
+							return string.Format ("There are <b>{0:n0}</b> bytes of <b>{1}</b> objects indirectly referenced by <b>{2}</b> objects", node.RootMemory, Markup.EscapeText (rname), Markup.EscapeText (GetShortName (node.TypeName)));
 						else
 							return "";
 					}
@@ -469,25 +493,25 @@ namespace HeapShot.Gui.Widgets
 						string pname = GetParentType (iter);
 						if (pname != null) {
 							if (InverseReferences)
-								return string.Format ("There are <b>{0:n0}</b> bytes of <b>{1}</b> objects which have references to <b>{2}</b> objects", node.TotalMemory, GetShortName (node.TypeName), pname);
+								return string.Format ("There are <b>{0:n0}</b> bytes of <b>{1}</b> objects which have references to <b>{2}</b> objects", node.TotalMemory, Markup.EscapeText (GetShortName (node.TypeName)), Markup.EscapeText (pname));
 							else
-								return string.Format ("There are <b>{0:n0}</b> bytes of <b>{1}</b> objects referenced by <b>{2}</b> objects", node.TotalMemory, GetShortName (node.TypeName), pname);
+								return string.Format ("There are <b>{0:n0}</b> bytes of <b>{1}</b> objects referenced by <b>{2}</b> objects", node.TotalMemory, Markup.EscapeText (GetShortName (node.TypeName)), Markup.EscapeText (pname));
 						} else
-							return string.Format ("There are <b>{0:n0}</b> bytes of <b>{1}</b> objects", node.TotalMemory, GetShortName (node.TypeName));
+							return string.Format ("There are <b>{0:n0}</b> bytes of <b>{1}</b> objects", node.TotalMemory, Markup.EscapeText (GetShortName (node.TypeName)));
 					}
 					case 6:
 						string pname = GetParentType (iter);
 						if (pname != null) {
 							if (InverseReferences)
-								return string.Format ("Objects of type <b>{0}</b> which have references to <b>{2}</b> objects have an average size of <b>{1:n0}</b> bytes", GetShortName (node.TypeName), node.AverageSize, pname);
+								return string.Format ("Objects of type <b>{0}</b> which have references to <b>{2}</b> objects have an average size of <b>{1:n0}</b> bytes", Markup.EscapeText (GetShortName (node.TypeName)), node.AverageSize, Markup.EscapeText (pname));
 							else
-								return string.Format ("Objects of type <b>{0}</b> referenced by <b>{2}</b> objects have an average size of <b>{1:n0}</b> bytes", GetShortName (node.TypeName), node.AverageSize, pname);
+								return string.Format ("Objects of type <b>{0}</b> referenced by <b>{2}</b> objects have an average size of <b>{1:n0}</b> bytes", Markup.EscapeText (GetShortName (node.TypeName)), node.AverageSize, Markup.EscapeText (pname));
 						} else
-							return string.Format ("Objects of type <b>{0}</b> have an average size of <b>{1:n0}</b> bytes", GetShortName (node.TypeName), node.AverageSize);
+							return string.Format ("Objects of type <b>{0}</b> have an average size of <b>{1:n0}</b> bytes", Markup.EscapeText (GetShortName (node.TypeName)), node.AverageSize);
 				}
 			} else {
 				FieldReference fr = (FieldReference) ob;
-				return fr.FiledName;
+				return Markup.EscapeText (fr.FiledName);
 			}
 			
 			return "";
