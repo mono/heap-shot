@@ -237,7 +237,7 @@ namespace HeapShot.Gui.Widgets
 		{
 			ReferenceNode node;
 			if (checkPurge.Active) {
-				ProgressDialog dlg = new ProgressDialog ((Gtk.Window) this.Toplevel);
+				ProgressDialog dlg = new ProgressDialog ((Gtk.Window) this.Toplevel, false);
 				dlg.Show ();
 				while (Gtk.Application.EventsPending ())
 					Gtk.Application.RunIteration ();

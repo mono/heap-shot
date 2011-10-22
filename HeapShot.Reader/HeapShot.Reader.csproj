@@ -54,6 +54,7 @@
     <Compile Include="IProgressListener.cs" />
     <Compile Include="HeapSnapshot.cs" />
     <Compile Include="HeapShotEventArgs.cs" />
+    <Compile Include="LogFileReader.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

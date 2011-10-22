@@ -1,8 +1,34 @@
+// 
+// LogFileReader.cs
+// 
+// Copyright (C) 2006-2011 Novell, Inc. (http://www.novell.com)
+// Copyright (C) 2011 Xamarin Inc. (http://www.xamarin.com) 
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 using System;
 using Gtk;
 using HeapShot.Gui;
+using HeapShot.Gui.Widgets;
 using HeapShot.Reader;
 using System.Diagnostics;
+using System.Threading;
 
 public partial class MainWindow: Gtk.Window
 {
@@ -58,6 +84,7 @@ public partial class MainWindow: Gtk.Window
 	
 	void OpenFile (string file)
 	{
+		
 		mapReader = new ObjectMapReader (file);
 		mapReader.HeapSnapshotAdded += delegate (object o, HeapShotEventArgs args) {
 			Application.Invoke (delegate {
@@ -65,7 +92,38 @@ public partial class MainWindow: Gtk.Window
 			});
 		};
 		viewer.Sensitive = true;
-		mapReader.Read ();
+		
+		Reload (true);
+	}
+	
+	void Reload (bool showProgress)
+	{
+		ProgressDialog dialog = null;
+		
+		if (showProgress) {
+			dialog = new ProgressDialog (this, true);
+			dialog.Show ();
+		}
+		
+		ThreadPool.QueueUserWorkItem ((v) =>
+		{
+			ReloadSync (dialog);
+		});
+	}
+	
+	void ReloadSync (ProgressDialog dialog)
+	{
+		try {
+			mapReader.Read (dialog);
+			Application.Invoke ((sender, e) => 
+			{
+				ForceHeapSnapshotAction.Sensitive = mapReader.Port > 0;
+				if (dialog != null)
+					dialog.Destroy ();
+			});
+		} catch (Exception ex) {
+			Console.WriteLine ("Exception while processing log file: {0}", ex);
+		}
 	}
 	
 	void ProfileApplication (string file)
@@ -101,7 +159,7 @@ public partial class MainWindow: Gtk.Window
 		stopAction.Sensitive = false;
 		executeAction.Sensitive = true;
 		ForceHeapSnapshotAction.Sensitive = false;
-		mapReader.Read ();
+		Reload (false);
 	}
 
 	protected virtual void OnOpenActivated(object sender, System.EventArgs e)
@@ -130,11 +188,51 @@ public partial class MainWindow: Gtk.Window
 	{
 		Application.Quit ();
 	}
-
+	
+	bool checkingForHeapShot;
+	void CheckForHeapShot (int initialCount)
+	{
+		try {
+			Console.WriteLine ("CheckForHeapShot ({0}) checking: {1}", initialCount, checkingForHeapShot);
+			ReloadSync (null);
+			if (mapReader.HeapShots.Count == initialCount) {
+				System.Threading.ThreadPool.QueueUserWorkItem (v =>
+				{
+					System.Threading.Thread.Sleep (500);
+					Application.Invoke ((sender, e) => 
+					{
+						CheckForHeapShot (initialCount);
+					});
+				});
+			} else {
+				checkingForHeapShot = false;
+			}
+		} catch (Exception ex) {
+			var dialog = new MessageDialog (this, DialogFlags.Modal, MessageType.Error, ButtonsType.Ok, ex.Message);
+			try {
+				dialog.Run ();
+			} finally {
+				dialog.Destroy ();
+			}
+		}
+	}
+	
 	protected virtual void OnMemorySnapshotActivated(object sender, System.EventArgs e)
 	{
-		mapReader.ForceSnapshot ();
-		mapReader.WaitForHeapShot (4000);
+		try {
+			mapReader.ForceSnapshot ();
+			if (!checkingForHeapShot) {
+				checkingForHeapShot = true;
+				CheckForHeapShot (mapReader.HeapShots.Count);
+			}
+		} catch (Exception ex) {
+			var dialog = new MessageDialog (this, DialogFlags.Modal, MessageType.Error, ButtonsType.Ok, ex.Message);
+			try {
+				dialog.Run ();
+			} finally {
+				dialog.Destroy ();
+			}
+		}
 	}
 
 	protected virtual void OnExecuteActionActivated (object sender, System.EventArgs e)

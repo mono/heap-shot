@@ -1,10 +1,12 @@
 // 
 // Header.cs
 //  
-// Author:
+// Authors:
 //       Mike Krüger <mkrueger@novell.com>
+//       Rolf Bjarne Kvinge <rolf@xamarin.com>
 // 
 // Copyright (c) 2010 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2011 Xamarin Inc. (http://www.xamarin.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +28,7 @@
 
 using System;
 using System.IO;
+using HeapShot.Reader;
 
 namespace MonoDevelop.Profiler
 {
@@ -44,7 +47,7 @@ namespace MonoDevelop.Profiler
 		public readonly int Port; // tcp port for server if != 0
 		public readonly int SysId; //  operating system and architecture identifier
 		
-		protected Header (BinaryReader reader)
+		Header (LogFileReader reader)
 		{
 			Id = reader.ReadInt32 ();
 			if (Id != LogHeaderId)
@@ -61,8 +64,11 @@ namespace MonoDevelop.Profiler
 			SysId = reader.ReadUInt16 ();
 		}
 		
-		public static Header Read (BinaryReader reader)
+		public static Header Read (LogFileReader reader)
 		{
+			if (!reader.LoadData (32))
+				return null;
+
 			return new Header (reader);
 		}
 	}

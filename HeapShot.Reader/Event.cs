@@ -1,10 +1,12 @@
 // 
 // Event.cs
 //  
-// Author:
+// Authors:
 //       Mike Krüger <mkrueger@novell.com>
+//       Rolf Bjarne Kvinge <rolf@xamarin.com>
 // 
 // Copyright (c) 2010 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2011 Xamarin Inc. (http://www.xamarin.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +30,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
+using HeapShot.Reader;
 
 namespace MonoDevelop.Profiler
 {
@@ -48,7 +51,7 @@ namespace MonoDevelop.Profiler
 		public ulong Flags;
 		public long[] Frame;
 		
-		public Backtrace (BinaryReader reader)
+		public Backtrace (LogFileReader reader)
 		{
 			Flags = reader.ReadULeb128 ();
 			ulong num = reader.ReadULeb128 ();
@@ -78,7 +81,7 @@ namespace MonoDevelop.Profiler
 		public const byte TYPE_GC_HANDLE_CREATED = 4 << 4;
 		public const byte TYPE_GC_HANDLE_DESTROYED = 5 << 4;
 		
-		public static Event CreateEvent (BinaryReader reader,EventType type, byte extendedInfo)
+		public static Event CreateEvent (LogFileReader reader, EventType type, byte extendedInfo)
 		{
 			switch (type) {
 			case EventType.Alloc:
@@ -112,8 +115,8 @@ namespace MonoDevelop.Profiler
 			}
 			throw new InvalidOperationException ("invalid event type " + type);	
 		}
-
-		public static Event Read (BinaryReader reader)
+		
+		public static Event Read (LogFileReader reader)
 		{
 			byte info = reader.ReadByte ();
 			EventType type = (EventType)(info & 0xF);
@@ -133,7 +136,7 @@ namespace MonoDevelop.Profiler
 		public readonly ulong Size; // size of the object in the heap
 		public readonly Backtrace Backtrace;
 		
-		AllocEvent (BinaryReader reader, byte extendedInfo)
+		AllocEvent (LogFileReader reader, byte extendedInfo)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			Ptr = reader.ReadSLeb128 ();
@@ -142,8 +145,8 @@ namespace MonoDevelop.Profiler
 			if ((extendedInfo & TYPE_ALLOC_BT) != 0)
 				Backtrace = new Backtrace (reader);
 		}
-
-		public static Event Read (BinaryReader reader, byte extendedInfo)
+		
+		public static Event Read (LogFileReader reader, byte extendedInfo)
 		{
 			return new AllocEvent (reader, extendedInfo);
 		}
@@ -159,13 +162,13 @@ namespace MonoDevelop.Profiler
 	{
 		public readonly ulong HeapSize; // new heap size
 		
-		ResizeGcEvent (BinaryReader reader)
+		ResizeGcEvent (LogFileReader reader)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			HeapSize = reader.ReadULeb128 ();
 		}
-
-		public static new Event Read (BinaryReader reader)
+		
+		public static new Event Read (LogFileReader reader)
 		{
 			return new ResizeGcEvent (reader);
 		}
@@ -194,14 +197,14 @@ namespace MonoDevelop.Profiler
 			PostStartWorld
 		}
 		
-		GcEvent (BinaryReader reader)
+		GcEvent (LogFileReader reader)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			EventType = (GcEventType) reader.ReadULeb128 ();
 			Generation = reader.ReadULeb128 ();
 		}
-
-		public static new Event Read (BinaryReader reader)
+		
+		public static new Event Read (LogFileReader reader)
 		{
 			return new GcEvent (reader);
 		}
@@ -216,7 +219,7 @@ namespace MonoDevelop.Profiler
 	{
 		public readonly long[] ObjAddr; //  num_objects object pointer differences from obj_base
 		
-		MoveGcEvent (BinaryReader reader)
+		MoveGcEvent (LogFileReader reader)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			ulong num = reader.ReadULeb128 ();
@@ -225,8 +228,8 @@ namespace MonoDevelop.Profiler
 				ObjAddr [i] = reader.ReadSLeb128 ();
 			}
 		}
-
-		public static new Event Read (BinaryReader reader)
+		
+		public static new Event Read (LogFileReader reader)
 		{
 			return new MoveGcEvent (reader);
 		}
@@ -243,15 +246,15 @@ namespace MonoDevelop.Profiler
 		public readonly ulong Handle; // GC handle value
 		public readonly long ObjAddr; // object pointer differences from obj_base
 		
-		HandleCreatedGcEvent (BinaryReader reader)
+		HandleCreatedGcEvent (LogFileReader reader)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			HandleType = reader.ReadULeb128 ();
 			Handle = reader.ReadULeb128 ();
 			ObjAddr = reader.ReadSLeb128 ();
 		}
-
-		public static new Event Read (BinaryReader reader)
+		
+		public static new Event Read (LogFileReader reader)
 		{
 			return new HandleCreatedGcEvent (reader);
 		}
@@ -267,14 +270,14 @@ namespace MonoDevelop.Profiler
 		public readonly ulong HandleType; // GC handle type (System.Runtime.InteropServices.GCHandleType)
 		public readonly ulong Handle; // GC handle value
 		
-		HandleDestroyedGcEvent (BinaryReader reader)
+		HandleDestroyedGcEvent (LogFileReader reader)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			HandleType = reader.ReadULeb128 ();
 			Handle = reader.ReadULeb128 ();
 		}
-
-		public static new Event Read (BinaryReader reader)
+		
+		public static new Event Read (LogFileReader reader)
 		{
 			return new HandleDestroyedGcEvent (reader);
 		}
@@ -305,7 +308,7 @@ namespace MonoDevelop.Profiler
 		
 		public readonly long Image; // MonoImage* as a pointer difference from ptr_base
 	
-		MetadataEvent (BinaryReader reader)
+		MetadataEvent (LogFileReader reader)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			MType = (MetaDataType)reader.ReadByte ();
@@ -326,8 +329,8 @@ namespace MonoDevelop.Profiler
 				break;
 			}
 		}
-
-		public static new Event Read (BinaryReader reader)
+		
+		public static new Event Read (LogFileReader reader)
 		{
 			return new MetadataEvent (reader);
 		}
@@ -356,7 +359,7 @@ namespace MonoDevelop.Profiler
 		public readonly ulong CodeSize; // size of the generated code
 		public readonly string Name; // full method name
 		
-		MethodEvent (BinaryReader reader, byte exinfo)
+		MethodEvent (LogFileReader reader, byte exinfo)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			Method = reader.ReadSLeb128 ();
@@ -367,8 +370,8 @@ namespace MonoDevelop.Profiler
 				Name = reader.ReadNullTerminatedString ();
 			}
 		}
-
-		public static Event Read (BinaryReader reader, byte exinfo)
+		
+		public static Event Read (LogFileReader reader, byte exinfo)
 		{
 			return new MethodEvent (reader, exinfo);
 		}
@@ -395,7 +398,7 @@ namespace MonoDevelop.Profiler
 		public readonly long Object; // the object that was thrown as a difference from obj_base If the TYPE_EXCEPTION_BT flag is set, a backtrace follows.
 		public readonly Backtrace Backtrace;
 		
-		ExceptionEvent (BinaryReader reader, byte exinfo)
+		ExceptionEvent (LogFileReader reader, byte exinfo)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			byte subtype = (byte)(exinfo & 0x70);
@@ -409,8 +412,8 @@ namespace MonoDevelop.Profiler
 					Backtrace = new Backtrace (reader);
 			}
 		}
-
-		public static Event Read (BinaryReader reader, byte exinfo)
+		
+		public static Event Read (LogFileReader reader, byte exinfo)
 		{
 			return new ExceptionEvent (reader, exinfo);
 		}
@@ -432,7 +435,7 @@ namespace MonoDevelop.Profiler
 		public readonly long Object; //  the lock object as a difference from obj_base
 		public readonly Backtrace Backtrace;
 		
-		MonitiorEvent (BinaryReader reader, byte exinfo)
+		MonitiorEvent (LogFileReader reader, byte exinfo)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			Object = reader.ReadSLeb128 ();
@@ -441,8 +444,8 @@ namespace MonoDevelop.Profiler
 				Backtrace = new Backtrace (reader);
 			}
 		}
-
-		public static Event Read (BinaryReader reader, byte exinfo)
+		
+		public static Event Read (LogFileReader reader, byte exinfo)
 		{
 			return new MonitiorEvent (reader, exinfo);
 		}
@@ -493,7 +496,7 @@ namespace MonoDevelop.Profiler
 			Object
 		};
 		
-		HeapEvent (BinaryReader reader, byte exinfo)
+		HeapEvent (LogFileReader reader, byte exinfo)
 		{
 			if (exinfo == TYPE_HEAP_START) {
 				Type = EventType.Start;
@@ -527,8 +530,8 @@ namespace MonoDevelop.Profiler
 				}
 			}
 		}
-
-		public static Event Read (BinaryReader reader, byte exinfo)
+		
+		public static Event Read (LogFileReader reader, byte exinfo)
 		{
 			return new HeapEvent (reader, exinfo);
 		}
@@ -545,7 +548,7 @@ namespace MonoDevelop.Profiler
 		public const byte TYPE_SAMPLE_USYM = 1 << 4;
 		public const byte TYPE_SAMPLE_UBIN = 2 << 4;
 		
-		public static Event Read (BinaryReader reader, byte exinfo)
+		public static Event Read (LogFileReader reader, byte exinfo)
 		{
 			if (exinfo == TYPE_SAMPLE_HIT)
 				return new HitSampleEvent (reader);
@@ -564,7 +567,7 @@ namespace MonoDevelop.Profiler
 		public readonly ulong Timestamp;
 		public readonly long[] InstructionPointers;
 		
-		public HitSampleEvent (BinaryReader reader)
+		public HitSampleEvent (LogFileReader reader)
 		{
 			SampleType = (SampleType) reader.ReadULeb128 ();
 			Timestamp = reader.ReadULeb128 ();
@@ -586,7 +589,7 @@ namespace MonoDevelop.Profiler
 		public readonly ulong Size;
 		public readonly string Name;
 		
-		public USymSampleEvent (BinaryReader reader)
+		public USymSampleEvent (LogFileReader reader)
 		{
 			Address = reader.ReadSLeb128 ();
 			Size = reader.ReadULeb128 ();
@@ -606,7 +609,7 @@ namespace MonoDevelop.Profiler
 		public readonly ulong Size;
 		public readonly string Name;
 		
-		public UBinSampleEvent (BinaryReader reader)
+		public UBinSampleEvent (LogFileReader reader)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			Address = reader.ReadSLeb128 ();

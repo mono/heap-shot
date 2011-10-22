@@ -15,6 +15,7 @@ CSFILES =  \
 	HeapShotEventArgs.cs\
 	IProgressListener.cs\
 	LogBuffer.cs \
+	LogFileReader.cs \
 	ObjectInfo.cs \
 	ObjectMapFileReader.cs \
 	ObjectReference.cs \

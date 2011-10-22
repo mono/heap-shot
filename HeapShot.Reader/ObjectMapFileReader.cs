@@ -1,9 +1,9 @@
 //
-// OutfileReader.cs
+// ObjectMapFileReader.cs
 //
 // Copyright (C) 2005 Novell, Inc.
+// Copyright (C) 2011 Xamarin Inc. (http://www.xamarin.com)
 //
-
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of version 2 of the GNU General Public
@@ -23,6 +23,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using MonoDevelop.Profiler;
@@ -35,14 +36,12 @@ namespace HeapShot.Reader {
 	{
 		const string log_file_label = "heap-shot logfile";
 		
-		int port = -1;
-		long lastReadPosition;
-		bool insideBuffer;
-		long bufferEndPos;
-		
 		string name;
+		LogFileReader reader;
 		DateTime timestamp;
 		ulong totalMemory;
+		
+		Header header;
 		
 		long currentPtrBase;
 		long currentObjBase;
@@ -80,29 +79,39 @@ namespace HeapShot.Reader {
 		
 		public void Dispose ()
 		{
+			reader.Dispose ();
 		}
 		
-		public bool Read ()
+		
+		public void Read ()
 		{
+			Read (null);
+		}
+		
+		public void Read (IProgressListener progress)
+		{
+			Stopwatch watch = new Stopwatch ();
+			watch.Start ();
+			
 			try {
 				if (!File.Exists (name))
-					return false;
+					return;
+				
 				DateTime tim = File.GetLastWriteTime (name);
 				if (tim == timestamp)
-					return true;
+					return;
 				
-				Stream stream = new FileStream (name, FileMode.Open, FileAccess.Read);
-	
-				BinaryReader reader;
-				reader = new BinaryReader (stream);
-				ReadLogFile (reader);
-				reader.Close ();
+				if (reader == null)
+					reader = new LogFileReader (name);
+				
+				ReadLogFile (progress);
+
 				timestamp = File.GetLastWriteTime (name);
-				
-				return true;
 			} catch (Exception ex) {
 				Console.WriteLine (ex);
-				return false;
+			} finally {
+				watch.Stop ();
+				Console.WriteLine ("ObjectMapFileReader.Read (): Completed in {0} s", watch.ElapsedMilliseconds / (double) 1000);
 			}
 		}
 		
@@ -127,64 +136,83 @@ namespace HeapShot.Reader {
 			get { return timestamp; }
 		}
 		
-		public IEnumerable<HeapSnapshot> HeapShots {
+		public IList<HeapSnapshot> HeapShots {
 			get { return shots; }
+		}
+		
+		public int Port {
+			get { return header == null ? 0 : header.Port; }
 		}
 		
 		public void ForceSnapshot ()
 		{
-			if (port == -1) {
+			if (header == null) {
 				Read ();
-				if (port == -1)
+				if (header == null)
 					throw new Exception ("Log file could not be opened");
 			}
 			using (TcpClient client = new TcpClient ()) {
-				client.Connect ("127.0.0.1", port);
+				client.Connect ("127.0.0.1", header.Port);
 				using (StreamWriter sw = new StreamWriter (client.GetStream ())) {
 					sw.WriteLine ("heapshot");
 					sw.Flush ();
 				}
 			}
-			System.Threading.Thread.Sleep (3000);
 		}
 
 		//
 		// Code to read the log files generated at runtime
 		//
-
-		private void ReadLogFile (BinaryReader reader)
+		private void ReadLogFile (IProgressListener progress)
 		{
-			if (lastReadPosition == 0) {
-				Header h = Header.Read (reader);
-				port = h.Port;
-				lastReadPosition = reader.BaseStream.Position;
-			}
-			else {
-				reader.BaseStream.Position = lastReadPosition;
-			}
+			BufferHeader bheader;
+			long start_position = reader.Position;
+			long last_pct = 0;
 			
-			while (reader.BaseStream.Position < reader.BaseStream.Length) {
-				if (!insideBuffer) {
-					BufferHeader bheader = BufferHeader.Read (reader);
-					bufferEndPos = reader.BaseStream.Position + bheader.Length;
-//					Console.WriteLine ("BUFFER ThreadId: " + bheader.ThreadId + " End:" + bufferEndPos + " Len:" + reader.BaseStream.Length);
-					currentObjBase = bheader.ObjBase;
-					currentPtrBase = bheader.PtrBase;
-					insideBuffer = true;
-					lastReadPosition = reader.BaseStream.Position;
+			if (header == null)
+				header = Header.Read (reader);
+			if (header == null)
+				return;
+			
+			while (!reader.IsEof) {
+				// We check if we must cancel before reading more data (and after processing all the data we've read).
+				// This way we don't cancel in the middle of event processing (since we store data at class level
+				// we may end up with corruption the next time we read the same buffer otherwise).
+				if (progress != null) {
+					if (progress.Cancelled)
+						return;
+						
+					long pct = (reader.Position - start_position) * 100 / (reader.Length - start_position);
+					if (pct != last_pct) {
+						last_pct = pct;
+						progress.ReportProgress ("Loading profiler log", pct / 100.0f);
+					}
 				}
-				while (reader.BaseStream.Position < bufferEndPos) {
+				
+				bheader = BufferHeader.Read (reader);
+				if (bheader == null) {
+					// entire buffer isn't available (yet)
+					return;
+				}
+				
+				//Console.WriteLine ("BUFFER ThreadId: " + bheader.ThreadId + " Len:" + bheader.Length);
+				currentObjBase = bheader.ObjBase;
+				currentPtrBase = bheader.PtrBase;
+
+				while (!reader.IsBufferEmpty) {
+					MetadataEvent me;
+					HeapEvent he;
+					GcEvent ge;
+					
 					Event e = Event.Read (reader);
-//					Console.WriteLine ("Event: " + e + " " + reader.BaseStream.Position);
-					if (e is MetadataEvent)
-						ReadLogFileChunk_Type ((MetadataEvent)e);
-					else if (e is HeapEvent)
-						ReadLogFileChunk_Object ((HeapEvent)e);
-					else if (e is GcEvent)
-						ReadGcEvent ((GcEvent)e);
-					lastReadPosition = reader.BaseStream.Position;
+					//Console.WriteLine ("Event: {0}", e);
+					if ((me = e as MetadataEvent) != null)
+						ReadLogFileChunk_Type (me);
+					else if ((he = e as HeapEvent) != null)
+						ReadLogFileChunk_Object (he);
+					else if ((ge = e as GcEvent) != null)
+						ReadGcEvent (ge);
 				}
-				insideBuffer = false;
 			}
 		}
 
@@ -220,11 +248,11 @@ namespace HeapShot.Reader {
 		private void ReadLogFileChunk_Object (HeapEvent he)
 		{
 			if (he.Type == HeapEvent.EventType.Start) {
-				Console.WriteLine ("ppe: START");
+				//Console.WriteLine ("ppe: START");
 				return;
 			}
 			else if (he.Type == HeapEvent.EventType.End) {
-				Console.WriteLine ("ppe: END");
+				//Console.WriteLine ("ppe: END");
 				HeapSnapshot shot = new HeapSnapshot ();
 				shotCount++;
 				shot.Build (shotCount.ToString (), currentData);

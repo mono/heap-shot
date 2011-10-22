@@ -1,11 +1,13 @@
 // 
 // LogBuffer.cs
 //  
-// Author:
+// Authors:
 //       Mike Krüger <mkrueger@novell.com>
+//       Rolf Bjarne Kvinge <rolf@xamarin.com>
 // 
 // Copyright (c) 2010 Novell, Inc (http://www.novell.com)
-// 
+// Copyright (C) 2011 Xamarin Inc. (http://www.xamarin.com) 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -27,6 +29,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using HeapShot.Reader;
 
 namespace MonoDevelop.Profiler
 {
@@ -37,17 +40,15 @@ namespace MonoDevelop.Profiler
 
 		public static LogBuffer Read (string fileName)
 		{
-			BinaryReader reader = new BinaryReader (File.OpenRead (fileName));
-			LogBuffer result = new LogBuffer (reader);
-			
-			reader.Close ();
-			return result;
+			using (var reader = new LogFileReader (fileName)) {
+				return new LogBuffer (reader);
+			}
 		}
-
-		LogBuffer (BinaryReader reader)
+		
+		LogBuffer (LogFileReader reader) 
 		{
 			this.Header = Header.Read (reader);
-			while (reader.BaseStream.Position < reader.BaseStream.Length) {
+			while (reader.Position < reader.Length) {
 				buffers.Add (Buffer.Read (reader));
 			}
 		}

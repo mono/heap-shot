@@ -141,7 +141,7 @@ namespace HeapShot.Reader
 		
 		public bool HasReferences {
 			get {
-				return true;
+				return References.Count > 0 || FieldReferences.Count > 0;
 			}
 		}
 		

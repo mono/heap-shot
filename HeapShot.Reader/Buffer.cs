@@ -1,10 +1,12 @@
 // 
 // Buffer.cs
 //  
-// Author:
+// Authors:
 //       Mike Krüger <mkrueger@novell.com>
+//       Rolf Bjarne Kvinge <rolf@xamarin.com>
 // 
 // Copyright (c) 2010 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2011 Xamarin Inc. (http://www.xamarin.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +29,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using HeapShot.Reader;
 
 namespace MonoDevelop.Profiler
 {
@@ -41,7 +44,7 @@ namespace MonoDevelop.Profiler
 		public readonly long ThreadId; // system-specific thread ID (pthread_t for example)
 		public readonly long MethodBase; // base value for MonoMethod pointers
 
-		BufferHeader (BinaryReader reader)
+		BufferHeader (LogFileReader reader)
 		{
 			BufId = reader.ReadInt32 ();
 			if (BufId != BUF_ID)
@@ -53,10 +56,28 @@ namespace MonoDevelop.Profiler
 			ThreadId = reader.ReadInt64 ();
 			MethodBase = reader.ReadInt64 ();
 		}
-
-		public static BufferHeader Read (BinaryReader reader)
+		
+		public static BufferHeader Read (LogFileReader reader)
 		{
-			return new BufferHeader (reader);
+			BufferHeader result;
+			long position = reader.Position;
+			
+			if (!reader.LoadData (48))
+				return null;
+			
+			try {
+				result = new BufferHeader (reader);
+			} catch {
+				Console.WriteLine ("Exception reading buffer at position {0}", position);
+				throw;
+			}
+			
+			if (!reader.LoadData (result.Length)) {
+				reader.Position = position; // rollback
+				return null;
+			}
+			
+			return result;
 		}
 	}
 
@@ -65,11 +86,11 @@ namespace MonoDevelop.Profiler
 		public readonly BufferHeader Header;
 		public readonly List<Event> Events = new List<Event> ();
 		
-		Buffer (BinaryReader reader)
+		Buffer (LogFileReader reader)
 		{
 			Header = BufferHeader.Read (reader);
-			var endPos = reader.BaseStream.Position + Header.Length;
-			while (reader.BaseStream.Position < endPos) {
+			var endPos = reader.Position + Header.Length;
+			while (reader.Position < endPos) {
 				Events.Add (Event.Read (reader));
 			}
 		}
@@ -78,8 +99,8 @@ namespace MonoDevelop.Profiler
 		{
 			Events.ForEach (e => e.Accept (visitor));
 		}
-
-		public static Buffer Read (BinaryReader reader)
+		
+		public static Buffer Read (LogFileReader reader)
 		{
 			return new Buffer (reader);
 		}
