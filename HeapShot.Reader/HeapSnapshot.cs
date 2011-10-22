@@ -2,8 +2,8 @@
 // OutfileReader.cs
 //
 // Copyright (C) 2005 Novell, Inc.
+// Copyright (C) 2011 Xamarin Inc. (http://www.xamarin.com)
 //
-
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of version 2 of the GNU General Public
@@ -118,6 +118,7 @@ namespace HeapShot.Reader {
 		// Code to read the log files generated at runtime
 		//
 
+		HashSet<long> types_not_found = new HashSet<long> ();
 		internal void Build (string name, HeapShotData data)
 		{
 			this.name = name;
@@ -181,7 +182,11 @@ namespace HeapShot.Reader {
 						types [i].TotalSize += mergedObjects [mergedObjectPos].Size;
 					} else {
 						mergedObjects [mergedObjectPos].Type = 0;
-						Console.WriteLine ("Type not found: " + data.ObjectTypeCodes [objectIndices[n]]);
+						long type_not_found = data.ObjectTypeCodes [objectIndices [n]];
+						if (!types_not_found.Contains (type_not_found)) {
+							types_not_found.Add (type_not_found);
+							Console.WriteLine ("Type not found: " + type_not_found);
+						}
 					}
 				}
 				int baseRefIndex = ob.RefsIndex;
