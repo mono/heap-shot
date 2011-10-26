@@ -30,7 +30,6 @@ SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
 RES_CSFLAGS = $(foreach res, $(RES), -resource:$(res))
 
 $(TARGET): $(SRCDIR_CSFILES) $(RES)
-	echo $(RES_FILES)
 	$(CSC) -out:$@ $(CSFLAGS) $(REFS) $(RES_CSFLAGS) $(SRCDIR_CSFILES)
 
 all: $(TARGET)
