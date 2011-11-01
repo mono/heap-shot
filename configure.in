@@ -16,6 +16,7 @@ HeapShot.Reader/Makefile
 HeapShot.Gui.Widgets/Makefile
 HeapShot.Gui/Makefile
 HeapShot/Makefile
+MacSetup/Makefile
 ])
 
 
