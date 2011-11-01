@@ -22,6 +22,7 @@
     <Execution>
       <Execution clr-version="Net_2_0" />
     </Execution>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
@@ -33,6 +34,7 @@
     <Execution>
       <Execution clr-version="Net_2_0" />
     </Execution>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="gtk-gui\generated.cs" />
@@ -42,6 +44,18 @@
     <Compile Include="SelectProcessDialog.cs" />
     <Compile Include="gtk-gui\MainWindow.cs" />
     <Compile Include="gtk-gui\HeapShot.Gui.SelectProcessDialog.cs" />
+    <Compile Include="IgeMacMenuGlobal.cs" />
+    <Compile Include="PlatformIntegration.cs" />
+    <Compile Include="PlatformDetection.cs" />
+    <Compile Include="MacInterop\AppleEvent.cs" />
+    <Compile Include="MacInterop\AppleScript.cs" />
+    <Compile Include="MacInterop\ApplicationEvents.cs" />
+    <Compile Include="MacInterop\Carbon.cs" />
+    <Compile Include="MacInterop\ComponentManager.cs" />
+    <Compile Include="MacInterop\CoreFoundation.cs" />
+    <Compile Include="MacInterop\GtkQuartz.cs" />
+    <Compile Include="MacInterop\HIToolbox.cs" />
+    <Compile Include="MacInterop\ProcessManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="gtk-gui\gui.stetic">
