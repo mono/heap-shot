@@ -1,18 +1,12 @@
+NAME = HeapShot.Gui.Widgets
+TARGET = $(NAME).dll
+CSPROJ = $(NAME).csproj
+XBUILD = xbuild
+XBUILD_ARGS = "/property:Configuration=Debug" $(CSPROJ)
 
-CSC = dmcs -debug
-CSFLAGS = -target:library 
-
-TARGET = HeapShot.Gui.Widgets.dll
-
-CSFILES =  \
-	AssemblyInfo.cs \
-	gtk-gui/generated.cs \
-	gtk-gui/HeapShot.Gui.Widgets.ObjectMapViewer.cs \
-	gtk-gui/HeapShot.Gui.Widgets.ReferenceTreeViewer.cs \
-	gtk-gui/HeapShot.Gui.Widgets.ProgressDialog.cs \
-	ObjectMapViewer.cs 	\
-	ProgressDialog.cs	\
-	ReferenceTreeViewer.cs
+CSFILES = \
+	$(wildcard *.cs) \
+	$(wildcard */*.cs)
 
 RES =  \
 	class.png \
@@ -20,17 +14,8 @@ RES =  \
 	gtk-gui/gui.stetic \
 	gtk-gui/objects.xml
 
-REFS =  \
-	-pkg:gtk-sharp-2.0 \
-	-r:Mono.Posix \
-	-r:$(top_builddir)/HeapShot.Reader/HeapShot.Reader.dll \
-	-r:System
-
-SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
-RES_CSFLAGS = $(foreach res, $(RES), -resource:$(res))
-
-$(TARGET): $(SRCDIR_CSFILES) $(RES)
-	$(CSC) -out:$@ $(CSFLAGS) $(REFS) $(RES_CSFLAGS) $(SRCDIR_CSFILES)
+$(TARGET): $(CSFILES) $(CSPROJ)
+	$(XBUILD) $(XBUILD_ARGS)
 
 all: $(TARGET)
 
@@ -48,4 +33,6 @@ CLEANFILES =			\
 	$(TARGET)		\
 	$(TARGET).mdb
 
-
+clean-local:
+	$(XBUILD) $(XBUILD_ARGS) /t:Clean
+	rm -rf bin obj

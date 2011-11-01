@@ -1,36 +1,16 @@
-
-CSC = dmcs -debug
-CSFLAGS = -target:exe
-
-TARGET = HeapShot.Gui.exe
-WRAPPER = heap-shot-gui
-
-CSFILES =  \
-	AssemblyInfo.cs \
-	gtk-gui/generated.cs \
-	gtk-gui/HeapShot.Gui.SelectProcessDialog.cs \
-	gtk-gui/MainWindow.cs \
-	Main.cs \
-	MainWindow.cs \
-	SelectProcessDialog.cs
+NAME = HeapShot.Gui
+TARGET = $(NAME).exe
+CSPROJ = $(NAME).csproj
+XBUILD = xbuild
+XBUILD_ARGS = "/property:Configuration=Debug" $(CSPROJ)
 
 bin_SCRIPTS =			\
 	$(WRAPPER)
 
+CSFILES = $(wildcard *.cs) $(wildcard */*.cs)
 
-REFS =  \
-	-pkg:gtk-sharp-2.0 \
-	-r:$(top_builddir)/HeapShot.Reader/HeapShot.Reader.dll \
-	-r:../HeapShot.Gui.Widgets/HeapShot.Gui.Widgets.dll \
-	-r:Mono.Posix \
-	-r:System
-
-RES = gtk-gui/gui.stetic
-
-SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
-
-$(TARGET): $(SRCDIR_CSFILES)
-	$(CSC) -out:$@ $(CSFLAGS) $(REFS) $^
+$(TARGET): $(CSFILES) $(CSPROJ)
+	$(XBUILD) $(XBUILD_ARGS)
 
 all: $(TARGET) $(WRAPPER)
 
@@ -41,12 +21,13 @@ install-data-local: $(TARGET)
 uninstall-local:
 	cd $(DESTDIR)$(pkglibdir) && rm -f $(TARGET)
 
-
 EXTRA_DIST = 			\
 	$(CSFILES)		\
 	$(WRAPPER).in
 
 CLEANFILES =			\
-	$(TARGET)		\
-	$(TARGET).mdb		\
 	$(WRAPPER)
+
+clean-local:
+	rm -f *.dll *.mdb *.exe
+	rm -rf obj bin

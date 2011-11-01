@@ -14,8 +14,7 @@ HeapShot.app:
 	@mkdir -p $(MAC_APP_LIB_DIR)
 	@mkdir -p $(MAC_APP_DIR)/Contents/MacOS/share/heapshot
 	@cp -pR ../HeapShot.Gui/*.exe* $(MAC_APP_LIB_DIR)
-	@cp -pR ../HeapShot.Gui.Widgets/*.dll* $(MAC_APP_LIB_DIR)
-	@cp -pR ../HeapShot.Reader/*.dll* $(MAC_APP_LIB_DIR)
+	@cp -pR ../HeapShot.Gui/*.dll* $(MAC_APP_LIB_DIR)
 	@mkdir -p $(MAC_APP_DIR)/Contents/MacOS/share/heapshot
 	@cp ../COPYING $(MAC_APP_DIR)/Contents/MacOS/share/heapshot/COPYING
 	@sed -e "s/@BUNDLE_VERSION@/$(BUNDLE_VERSION)/g" Info.plist.in > $(MAC_APP_DIR)/Contents/Info.plist

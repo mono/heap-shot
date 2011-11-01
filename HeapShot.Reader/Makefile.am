@@ -1,34 +1,13 @@
+NAME = HeapShot.Reader
+TARGET = $(NAME).dll
+CSPROJ = $(NAME).csproj
+XBUILD = xbuild
+XBUILD_ARGS = "/property:Configuration=Debug" $(CSPROJ)
 
-CSC = dmcs -debug
-CSFLAGS = -target:library
+CSFILES = $(wildcard *.cs)
 
-TARGET = HeapShot.Reader.dll
-
-CSFILES =  \
-	Buffer.cs \
-	Event.cs \
-	EventVisitor.cs \
-	FieldInfo.cs \
-	Graph.cs	\
-	Header.cs \
-	HeapSnapshot.cs\
-	HeapShotEventArgs.cs\
-	IProgressListener.cs\
-	LogBuffer.cs \
-	LogFileReader.cs \
-	ObjectInfo.cs \
-	ObjectMapFileReader.cs \
-	ObjectReference.cs \
-	ReferenceNode.cs \
-	TypeInfo.cs \
-	Util.cs
-
-
-REFS = -r:System
-SRCDIR_CSFILES = $(CSFILES:%=$(srcdir)/%)
-
-$(TARGET): $(SRCDIR_CSFILES)
-	$(CSC) -out:$@ $(CSFLAGS) $(REFS) $^
+$(TARGET): $(CSFILES) $(CSPROJ)
+	$(XBUILD) $(XBUILD_ARGS)
 
 all: $(TARGET)
 
@@ -45,3 +24,8 @@ EXTRA_DIST = 			\
 CLEANFILES =			\
 	$(TARGET)		\
 	$(TARGET).mdb
+
+clean-local:
+	$(XBUILD) $(XBUILD_ARGS) /t:Clean
+	rm -rf bin obj
+
