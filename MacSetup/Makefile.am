@@ -18,7 +18,7 @@ HeapShot.app:
 	@mkdir -p $(MAC_APP_DIR)/Contents/MacOS/share/heapshot
 	@cp ../COPYING $(MAC_APP_DIR)/Contents/MacOS/share/heapshot/COPYING
 	@sed -e "s/@BUNDLE_VERSION@/$(BUNDLE_VERSION)/g" Info.plist.in > $(MAC_APP_DIR)/Contents/Info.plist
-#	cp ../../theme-icons/Mac/*.icns $(MAC_APP_DIR)/Contents/Resources/
+	@cp ../theme-icons/Mac/*.icns $(MAC_APP_DIR)/Contents/Resources/
 	@cp -p heapshot $(MACOS)/heapshot
 	@touch HeapShot.app
 
