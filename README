@@ -143,4 +143,4 @@ Comparing changes across time
 Creating a Mac app bundle
 =========================
 
-	Just run make in MacSetup.
+	Just run "make mac-app"

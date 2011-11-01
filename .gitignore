@@ -3,6 +3,7 @@
 *.exe
 *.pidb
 *.userprefs
+*.app
 Makefile
 Makefile.in
 heap-shot-gui
