@@ -23,12 +23,14 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using Gtk;
 using HeapShot.Gui;
 using HeapShot.Gui.Widgets;
 using HeapShot.Reader;
 using System.Diagnostics;
 using System.Threading;
+using IgeMacIntegration;
 
 public partial class MainWindow: Gtk.Window
 {
@@ -47,6 +49,17 @@ public partial class MainWindow: Gtk.Window
 		stopAction.Sensitive = false;
 		executeAction.Sensitive = true;
 		ForceHeapSnapshotAction.Sensitive = false;
+
+		if (PlatformDetection.IsMac) {
+			//enable the global key handler for keyboard shortcuts
+			IgeMacMenu.GlobalKeyHandlerEnabled = true;
+
+			//Tell the IGE library to use your GTK menu as the Mac main menu
+			IgeMacMenu.MenuBar = this.menubar1;
+
+			//hide the menu bar so it no longer displays within the window
+			this.menubar1.Hide ();
+		}
 	}
 	
 	protected override void OnDestroyed ()
@@ -80,6 +93,28 @@ public partial class MainWindow: Gtk.Window
 		}
 		viewer.Clear ();
 		viewer.Sensitive = false;
+	}
+	
+	public void OpenFiles (IDictionary<string, int> files)
+	{
+		OpenFiles (new List<string> (files.Keys));
+	}
+	
+	public void OpenFiles (IList<string> files)
+	{
+		if (files.Count == 0)
+			return;
+		
+		if (files.Count != 1) {
+			var dialog = new MessageDialog (this, DialogFlags.Modal, MessageType.Error, ButtonsType.Ok, "Only 1 document can be opened at a time");
+			try {
+				dialog.Run ();
+			} finally {
+				dialog.Destroy ();
+			}
+		}
+		
+		OpenFile (files [0]);
 	}
 	
 	void OpenFile (string file)
