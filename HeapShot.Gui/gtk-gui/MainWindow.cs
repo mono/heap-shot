@@ -19,6 +19,7 @@ public partial class MainWindow
 	private global::Gtk.Toolbar toolbar1;
 	private global::HeapShot.Gui.Widgets.ObjectMapViewer viewer;
 	private global::Gtk.Statusbar statusbar1;
+	private global::Gtk.Label statusBarFileName;
 
 	protected virtual void Build ()
 	{
@@ -96,11 +97,20 @@ public partial class MainWindow
 		this.statusbar1 = new global::Gtk.Statusbar ();
 		this.statusbar1.Name = "statusbar1";
 		this.statusbar1.Spacing = 2;
-		this.vbox1.Add (this.statusbar1);
-		global::Gtk.Box.BoxChild w5 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.statusbar1]));
-		w5.Position = 3;
+		// Container child statusbar1.Gtk.Box+BoxChild
+		this.statusBarFileName = new global::Gtk.Label ();
+		this.statusBarFileName.Name = "statusBarFileName";
+		this.statusBarFileName.LabelProp = global::Mono.Unix.Catalog.GetString ("   ");
+		this.statusbar1.Add (this.statusBarFileName);
+		global::Gtk.Box.BoxChild w5 = ((global::Gtk.Box.BoxChild)(this.statusbar1 [this.statusBarFileName]));
+		w5.Position = 1;
 		w5.Expand = false;
 		w5.Fill = false;
+		this.vbox1.Add (this.statusbar1);
+		global::Gtk.Box.BoxChild w6 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.statusbar1]));
+		w6.Position = 3;
+		w6.Expand = false;
+		w6.Fill = false;
 		this.Add (this.vbox1);
 		if ((this.Child != null)) {
 			this.Child.ShowAll ();

@@ -24,6 +24,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Gtk;
 using HeapShot.Gui;
 using HeapShot.Gui.Widgets;
@@ -43,8 +44,20 @@ public partial class MainWindow: Gtk.Window
 	{
 		Build ();
 		viewer.Sensitive = false;
-		if (args.Length > 0)
-			OpenFile (args [0]);
+		
+		// When opening an app bundle in Mac, we get an additional -psn### we must filter out
+		string filename = null;
+		foreach (string arg in args) {
+			if (!File.Exists (arg))
+				continue;
+			filename = arg;
+			break;
+		}
+		if (filename != null) {
+			OpenFile (filename);
+		} else {
+			statusBarFileName.Text = "No file loaded";
+		}
 		
 		stopAction.Sensitive = false;
 		executeAction.Sensitive = true;
@@ -119,7 +132,7 @@ public partial class MainWindow: Gtk.Window
 	
 	void OpenFile (string file)
 	{
-		
+		statusBarFileName.Text = file;
 		mapReader = new ObjectMapReader (file);
 		mapReader.HeapSnapshotAdded += delegate (object o, HeapShotEventArgs args) {
 			Application.Invoke (delegate {
