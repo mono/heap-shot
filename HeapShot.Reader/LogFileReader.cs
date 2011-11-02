@@ -104,15 +104,15 @@ namespace HeapShot.Reader
 		
 		public long ReadInt64 ()
 		{
-			uint ret_low  = (uint) (buffer [position + 0]        |
-			                       (buffer [position + 1] << 8)  |
-			                       (buffer [position + 2] << 16) |
-			                       (buffer [position + 3] << 24)
+			uint ret_low  = (uint) (((uint)buffer [position + 0])        |
+			                       (((uint)buffer [position + 1]) << 8)  |
+			                       (((uint)buffer [position + 2]) << 16) |
+			                       (((uint)buffer [position + 3]) << 24)
 			                       );
-			uint ret_high = (uint) (buffer [position + 4]        |
-			                       (buffer [position + 5] << 8)  |
-			                       (buffer [position + 6] << 16) |
-			                       (buffer [position + 7] << 24)
+			uint ret_high = (uint) (((uint)buffer [position + 4])        |
+			                       (((uint)buffer [position + 5]) << 8)  |
+			                       (((uint)buffer [position + 6]) << 16) |
+			                       (((uint)buffer [position + 7]) << 24)
 			                       );
 			position += 8;
 			return (long) ((((ulong) ret_high) << 32) | ret_low);
@@ -120,15 +120,15 @@ namespace HeapShot.Reader
 		
 		public ulong ReadUInt64 ()
 		{
-			uint ret_low  = (uint) (buffer [position + 0]        |
-			                       (buffer [position + 1] << 8)  |
-			                       (buffer [position + 2] << 16) |
-			                       (buffer [position + 3] << 24)
+			uint ret_low  = (uint) (((uint)buffer [position + 0])        |
+			                       (((uint)buffer [position + 1]) << 8)  |
+			                       (((uint)buffer [position + 2]) << 16) |
+			                       (((uint)buffer [position + 3]) << 24)
 			                       );
-			uint ret_high = (uint) (buffer [position + 4]        |
-			                       (buffer [position + 5] << 8)  |
-			                       (buffer [position + 6] << 16) |
-			                       (buffer [position + 7] << 24)
+			uint ret_high = (uint) (((uint)buffer [position + 4])        |
+			                       (((uint)buffer [position + 5]) << 8)  |
+			                       (((uint)buffer [position + 6]) << 16) |
+			                       (((uint)buffer [position + 7]) << 24)
 			                       );
 			position += 8;
 			return (((ulong) ret_high) << 32) | ret_low;
