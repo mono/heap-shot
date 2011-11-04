@@ -100,13 +100,12 @@ namespace HeapShot.Reader {
 				DateTime tim = File.GetLastWriteTime (name);
 				if (tim == timestamp)
 					return;
+				timestamp = tim;
 				
 				if (reader == null)
 					reader = new LogFileReader (name);
 				
 				ReadLogFile (progress);
-
-				timestamp = File.GetLastWriteTime (name);
 			} catch (Exception ex) {
 				Console.WriteLine (ex);
 			} finally {
