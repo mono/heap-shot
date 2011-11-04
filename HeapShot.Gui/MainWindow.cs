@@ -39,30 +39,25 @@ public partial class MainWindow: Gtk.Window
 	string outfile;
 	Process profProcess;
 	ObjectMapReader mapReader;
+	System.Threading.Timer timer;
 	
-	public MainWindow (string[] args): base ("")
+	public MainWindow (List<string> files, bool only_view, bool continuous_reload) : base (string.Empty)
 	{
 		Build ();
 		viewer.Sensitive = false;
-		
-		// When opening an app bundle in Mac, we get an additional -psn### we must filter out
-		string filename = null;
-		foreach (string arg in args) {
-			if (!File.Exists (arg))
-				continue;
-			filename = arg;
-			break;
-		}
-		if (filename != null) {
-			OpenFile (filename);
-		} else {
-			statusBarFileName.Text = "No file loaded";
-		}
-		
 		stopAction.Sensitive = false;
 		executeAction.Sensitive = true;
 		ForceHeapSnapshotAction.Sensitive = false;
-
+		statusBarFileName.Text = "No file loaded";
+		
+		if (only_view) {
+			stopAction.Visible = false;
+			executeAction.Visible = false;
+			this.LoadHeapSnapshotsAction.Visible = false;
+			this.ProfileAction.Visible = false;
+			this.open.Visible = false;
+		}
+		
 		if (PlatformDetection.IsMac) {
 			//enable the global key handler for keyboard shortcuts
 			IgeMacMenu.GlobalKeyHandlerEnabled = true;
@@ -72,6 +67,15 @@ public partial class MainWindow: Gtk.Window
 
 			//hide the menu bar so it no longer displays within the window
 			this.menubar1.Hide ();
+		}
+		
+		OpenFiles (files);
+		
+		if (continuous_reload) {
+			timer = new System.Threading.Timer ((v) =>
+			{
+				Reload (false);
+			}, null, 0, 500/*ms*/);
 		}
 	}
 	
@@ -162,10 +166,12 @@ public partial class MainWindow: Gtk.Window
 	void ReloadSync (ProgressDialog dialog)
 	{
 		try {
-			mapReader.Read (dialog);
+			lock (mapReader)
+				mapReader.Read (dialog);
 			Application.Invoke ((sender, e) => 
 			{
-				ForceHeapSnapshotAction.Sensitive = mapReader.Port > 0;
+				if (mapReader.Port > 0)
+					ForceHeapSnapshotAction.Sensitive = true;
 				if (dialog != null)
 					dialog.Destroy ();
 			});
@@ -237,42 +243,10 @@ public partial class MainWindow: Gtk.Window
 		Application.Quit ();
 	}
 	
-	bool checkingForHeapShot;
-	void CheckForHeapShot (int initialCount)
-	{
-		try {
-			Console.WriteLine ("CheckForHeapShot ({0}) checking: {1}", initialCount, checkingForHeapShot);
-			ReloadSync (null);
-			if (mapReader.HeapShots.Count == initialCount) {
-				System.Threading.ThreadPool.QueueUserWorkItem (v =>
-				{
-					System.Threading.Thread.Sleep (500);
-					Application.Invoke ((sender, e) => 
-					{
-						CheckForHeapShot (initialCount);
-					});
-				});
-			} else {
-				checkingForHeapShot = false;
-			}
-		} catch (Exception ex) {
-			var dialog = new MessageDialog (this, DialogFlags.Modal, MessageType.Error, ButtonsType.Ok, ex.Message);
-			try {
-				dialog.Run ();
-			} finally {
-				dialog.Destroy ();
-			}
-		}
-	}
-	
 	protected virtual void OnMemorySnapshotActivated(object sender, System.EventArgs e)
 	{
 		try {
 			mapReader.ForceSnapshot ();
-			if (!checkingForHeapShot) {
-				checkingForHeapShot = true;
-				CheckForHeapShot (mapReader.HeapShots.Count);
-			}
 		} catch (Exception ex) {
 			var dialog = new MessageDialog (this, DialogFlags.Modal, MessageType.Error, ButtonsType.Ok, ex.Message);
 			try {
