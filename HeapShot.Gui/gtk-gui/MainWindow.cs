@@ -35,7 +35,7 @@ public partial class MainWindow
 		w1.Add (this.quit, null);
 		this.ForceHeapSnapshotAction = new global::Gtk.Action ("ForceHeapSnapshotAction", global::Mono.Unix.Catalog.GetString ("Force Heap Snapshot"), null, null);
 		this.ForceHeapSnapshotAction.IsImportant = true;
-		this.ForceHeapSnapshotAction.ShortLabel = "Memory snapshot";
+		this.ForceHeapSnapshotAction.ShortLabel = "Take a Memory Snapshot";
 		w1.Add (this.ForceHeapSnapshotAction, null);
 		this.executeAction = new global::Gtk.Action ("executeAction", global::Mono.Unix.Catalog.GetString ("Run"), null, "gtk-execute");
 		this.executeAction.IsImportant = true;

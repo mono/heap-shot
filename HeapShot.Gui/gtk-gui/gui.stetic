@@ -27,7 +27,7 @@
         <property name="Type">Action</property>
         <property name="IsImportant">True</property>
         <property name="Label">Force Heap Snapshot</property>
-        <property name="ShortLabel">Memory snapshot</property>
+        <property name="ShortLabel">Take a Memory Snapshot</property>
         <signal name="Activated" handler="OnMemorySnapshotActivated" />
       </action>
       <action id="executeAction">
