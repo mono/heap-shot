@@ -196,6 +196,7 @@ namespace HeapShot.Reader {
 					mergedFieldReferenceCodes [mergedRefPos] = data.FieldReferenceCodes [r];
 				}
 				mergedObjects [mergedObjectPos].RefsCount += refsCount;
+				totalMemory += mergedObjects [mergedObjectPos].Size;
 			}
 			
 			objects = mergedObjects;
