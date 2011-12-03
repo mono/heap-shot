@@ -510,11 +510,13 @@ namespace HeapShot.Reader {
 			filteredObjects = new bool [objects.Length];
 			for (int n=0; n<otherShot.objects.Length; n++) {
 				int i = Array.BinarySearch (objectCodes, otherShot.objects[n].Code);
+				// FIXME: we don't keep track of objects that have moved,
+				// so those are treated as different objects right now.
 				if (i >= 0) {
 					filteredObjects [i] = true;
 					long t = objects[i].Type;
 					types [t].ObjectCount--;
-					types [t].TotalSize -= objects[i].Size;
+					//types [t].TotalSize -= objects[i].Size;
 					filteredCount++;
 					this.totalMemory -= objects[i].Size;
 				}
