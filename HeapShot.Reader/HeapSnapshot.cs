@@ -518,7 +518,7 @@ namespace HeapShot.Reader {
 					types [t].ObjectCount--;
 					//types [t].TotalSize -= objects[i].Size;
 					filteredCount++;
-					this.totalMemory -= objects[i].Size;
+					//this.totalMemory -= objects[i].Size;
 				}
 			}
 		}
