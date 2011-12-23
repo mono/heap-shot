@@ -547,6 +547,11 @@ namespace HeapShot.Reader {
 		
 		public string GetReferencerField (int obj, int refObj)
 		{
+			// The log profiler doesn't support referencer fields, so
+			// this just produces useless (even senseless) data in
+			// the output.
+			return null;
+/*
 			int n = objects [obj].RefsIndex;
 			int end = n + objects [obj].RefsCount;
 			for (; n<end; n++) {
@@ -558,6 +563,7 @@ namespace HeapShot.Reader {
 				}
 			}
 			return "<Unknown>";
+*/
 		}
 		
 		public string GetObjectTypeName (int obj)
