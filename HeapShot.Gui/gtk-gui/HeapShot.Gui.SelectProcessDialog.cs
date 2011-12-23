@@ -11,7 +11,7 @@ namespace HeapShot.Gui
 		private global::Gtk.Label label2;
 		private global::Gtk.Button button1;
 		private global::Gtk.Button button8;
-
+		
 		protected virtual void Build ()
 		{
 			global::Stetic.Gui.Initialize (this);

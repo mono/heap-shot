@@ -20,7 +20,7 @@ public partial class MainWindow
 	private global::HeapShot.Gui.Widgets.ObjectMapViewer viewer;
 	private global::Gtk.Statusbar statusbar1;
 	private global::Gtk.Label statusBarFileName;
-
+	
 	protected virtual void Build ()
 	{
 		global::Stetic.Gui.Initialize (this);

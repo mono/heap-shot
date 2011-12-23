@@ -13,7 +13,7 @@ namespace HeapShot.Gui.Widgets
 		private global::Gtk.Button buttonFilter;
 		private global::Gtk.CheckButton checkInverse;
 		private global::Gtk.CheckButton checkPurge;
-
+		
 		protected virtual void Build ()
 		{
 			global::Stetic.Gui.Initialize (this);

@@ -8,7 +8,7 @@ namespace HeapShot.Gui.Widgets
 		private global::Gtk.Label label;
 		private global::Gtk.ProgressBar progress;
 		private global::Gtk.Button buttonCancel;
-
+		
 		protected virtual void Build ()
 		{
 			global::Stetic.Gui.Initialize (this);
