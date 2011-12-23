@@ -50,7 +50,11 @@ namespace HeapShot.Reader {
 		
 		internal const long UnknownObjectId = -1;
 		internal const long StackObjectId = -2;
-		
+		internal const long FinalizerObjectId = -3;
+		internal const long HandleObjectId = -4;
+		internal const long OtherRootObjectId = -5;
+		internal const long MiscRootObjectId = -6;
+
 		long rootId = StackObjectId - 1;
 		
 		HeapShotData currentData;
@@ -69,12 +73,12 @@ namespace HeapShot.Reader {
 			currentData = new HeapShotData ();
 			
 			// Some stock types
-			currentData.TypesList.Add (new TypeInfo () { Code = -1, Name = "<Unknown>" });   // 0
-			currentData.TypesList.Add (new TypeInfo () { Code = -2, Name = "<Stack>" });     // 1
-			currentData.TypesList.Add (new TypeInfo () { Code = -3, Name = "<Finalizer>" }); // 2
-			currentData.TypesList.Add (new TypeInfo () { Code = -4, Name = "<Handle>" });    // 3
-			currentData.TypesList.Add (new TypeInfo () { Code = -5, Name = "<Other Root>" });      // 4
-			currentData.TypesList.Add (new TypeInfo () { Code = -6, Name = "<Misc Root>" }); // 5
+			currentData.TypesList.Add (new TypeInfo () { Code = UnknownObjectId, Name = "<Unknown>" });   // 0
+			currentData.TypesList.Add (new TypeInfo () { Code = StackObjectId, Name = "<Stack>" });     // 1
+			currentData.TypesList.Add (new TypeInfo () { Code = FinalizerObjectId, Name = "<Finalizer>" }); // 2
+			currentData.TypesList.Add (new TypeInfo () { Code = HandleObjectId, Name = "<Handle>" });    // 3
+			currentData.TypesList.Add (new TypeInfo () { Code = OtherRootObjectId, Name = "<Other Root>" });      // 4
+			currentData.TypesList.Add (new TypeInfo () { Code = MiscRootObjectId, Name = "<Misc Root>" }); // 5
 		}
 		
 		public void Dispose ()
@@ -286,11 +290,11 @@ namespace HeapShot.Reader {
 					ob.RefsCount = 1;
 					long type = UnknownTypeId;
 					switch (he.RootRefTypes [n] & HeapEvent.RootType.TypeMask) {
-					case HeapEvent.RootType.Stack: type = -2; ob.Code = StackObjectId; break;
-					case HeapEvent.RootType.Finalizer: type = -3; ob.Code = --rootId; break;
-					case HeapEvent.RootType.Handle: type = -4; ob.Code = --rootId; break;
-					case HeapEvent.RootType.Other: type = -5; ob.Code = --rootId; break;
-					case HeapEvent.RootType.Misc: type = -6; ob.Code = --rootId; break;
+					case HeapEvent.RootType.Stack: type = StackObjectId; ob.Code = StackObjectId; break;
+					case HeapEvent.RootType.Finalizer: type = FinalizerObjectId; ob.Code = --rootId; break;
+					case HeapEvent.RootType.Handle: type = HandleObjectId; ob.Code = --rootId; break;
+					case HeapEvent.RootType.Other: type = OtherRootObjectId; ob.Code = --rootId; break;
+					case HeapEvent.RootType.Misc: type = MiscRootObjectId; ob.Code = --rootId; break;
 					default:
 						Console.WriteLine ("pp1:"); break;
 					}
