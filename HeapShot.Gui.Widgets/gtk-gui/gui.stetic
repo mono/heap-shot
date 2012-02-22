@@ -270,6 +270,7 @@
                 <child>
                   <widget class="Gtk.Button" id="buttonFilter">
                     <property name="MemberName" />
+                    <property name="Sensitive">False</property>
                     <property name="CanFocus">True</property>
                     <property name="Type">TextOnly</property>
                     <property name="Label">Filter</property>
@@ -291,6 +292,7 @@
             <child>
               <widget class="Gtk.CheckButton" id="checkInverse">
                 <property name="MemberName">checkInverse</property>
+                <property name="Sensitive">False</property>
                 <property name="CanFocus">True</property>
                 <property name="Label">Inverse references</property>
                 <property name="DrawIndicator">True</property>

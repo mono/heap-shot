@@ -178,6 +178,8 @@ namespace HeapShot.Gui.Widgets
 			treeview.Columns [TreeColRefs+1].Visible = InverseReferences;
 			treeview.Columns [TreeColRefs+2].Visible = InverseReferences;
 			
+			EnableWidgets ();
+			
 			if (loading) {
 				// If the tree is already being loaded, notify that loading
 				// has to start again, since the file has changed.
@@ -219,6 +221,12 @@ namespace HeapShot.Gui.Widgets
 			loading = false;
 		}
 		
+		void EnableWidgets ()
+		{
+			buttonFilter.Sensitive = true;
+			checkInverse.Sensitive = true;
+		}
+		
 		public void FillType (HeapSnapshot file, string typeName)
 		{
 			this.typeName = typeName;
@@ -231,6 +239,7 @@ namespace HeapShot.Gui.Widgets
 			TreeIter iter = InternalFillType (file, file.GetTypeFromName (typeName));
 			if (!iter.Equals (TreeIter.Zero))
 				treeview.ExpandRow (store.GetPath (iter), false);
+			EnableWidgets ();
 		}
 		
 		TreeIter InternalFillType (HeapSnapshot file, int type)

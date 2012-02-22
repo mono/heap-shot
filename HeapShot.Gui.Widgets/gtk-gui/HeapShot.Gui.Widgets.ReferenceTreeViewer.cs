@@ -59,6 +59,7 @@ namespace HeapShot.Gui.Widgets
 			w3.Position = 0;
 			// Container child boxFilter.Gtk.Box+BoxChild
 			this.buttonFilter = new global::Gtk.Button ();
+			this.buttonFilter.Sensitive = false;
 			this.buttonFilter.CanFocus = true;
 			this.buttonFilter.Name = "buttonFilter";
 			this.buttonFilter.Label = "Filter";
@@ -72,6 +73,7 @@ namespace HeapShot.Gui.Widgets
 			w5.Position = 0;
 			// Container child hbox1.Gtk.Box+BoxChild
 			this.checkInverse = new global::Gtk.CheckButton ();
+			this.checkInverse.Sensitive = false;
 			this.checkInverse.CanFocus = true;
 			this.checkInverse.Name = "checkInverse";
 			this.checkInverse.Label = "Inverse references";
