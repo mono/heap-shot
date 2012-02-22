@@ -212,8 +212,12 @@ namespace HeapShot.Gui.Widgets
 					}*/
 					n = 0;
 				}
-				if (file.GetObjectCountForType (t) > 0)
-					InternalFillType (file, t);
+				bool cancelled = false;
+				if (file.GetObjectCountForType (t) > 0) {
+					InternalFillType (file, t, out cancelled);
+					if (cancelled)
+						break;
+				}
 			}
 			treeview.ThawChildNotify ();
 			EnableSorting ();
@@ -229,6 +233,7 @@ namespace HeapShot.Gui.Widgets
 		
 		public void FillType (HeapSnapshot file, string typeName)
 		{
+			bool cancelled;
 			this.typeName = typeName;
 			this.file = file;
 			store.Clear ();
@@ -236,21 +241,24 @@ namespace HeapShot.Gui.Widgets
 			treeview.Columns [TreeColRefs].Visible = InverseReferences;
 			treeview.Columns [TreeColRefs+1].Visible = InverseReferences;
 			treeview.Columns [TreeColRefs+2].Visible = InverseReferences;
-			TreeIter iter = InternalFillType (file, file.GetTypeFromName (typeName));
+			TreeIter iter = InternalFillType (file, file.GetTypeFromName (typeName), out cancelled);
 			if (!iter.Equals (TreeIter.Zero))
 				treeview.ExpandRow (store.GetPath (iter), false);
 			EnableWidgets ();
 		}
 		
-		TreeIter InternalFillType (HeapSnapshot file, int type)
+		TreeIter InternalFillType (HeapSnapshot file, int type, out bool cancelled)
 		{
 			ReferenceNode node;
+			cancelled = false;
+			
 			if (checkPurge.Active) {
 				ProgressDialog dlg = new ProgressDialog ((Gtk.Window) this.Toplevel, false);
 				dlg.Show ();
 				while (Gtk.Application.EventsPending ())
 					Gtk.Application.RunIteration ();
 				node = file.GetRootReferenceTree (dlg, type);
+				cancelled = dlg.Cancelled;
 				dlg.Destroy ();
 				if (node == null)
 					return TreeIter.Zero;
