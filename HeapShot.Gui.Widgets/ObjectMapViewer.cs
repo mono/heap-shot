@@ -88,27 +88,28 @@ namespace HeapShot.Gui.Widgets
 		
 		void OnToggled (object s, ToggledArgs args)
 		{
-			Gtk.TreeIter iter;
-			if (!fileStore.GetIterFromString (out iter, args.Path))
+			Gtk.TreeIter toggledIter, iter;
+			bool selected;
+			bool value;
+
+			if (!fileStore.GetIterFromString (out toggledIter, args.Path))
 				return;
 
-			if (!(bool) fileStore.GetValue (iter, 2))
-				baseMap = GetCurrentObjectMap ();
-			else
-				baseMap = null;
-			UpdateBase ();
-		}
-		
-		void UpdateBase ()
-		{
-			TreeIter iter;
+			selected = (bool) fileStore.GetValue (toggledIter, 2);
+
+			baseMap = null;
 			if (fileStore.GetIterFirst (out iter)) {
 				do {
-					HeapSnapshot map = (HeapSnapshot) fileStore.GetValue (iter, 0);
-					if (map == baseMap)
-						fileStore.SetValue (iter, 2, true);
-					else
-						fileStore.SetValue (iter, 2, false);
+					if (toggledIter.Equals (iter)) {
+						// this is the node the user toggled, so toggle it
+						value = !selected;
+						if (value)
+							baseMap = (HeapSnapshot) fileStore.GetValue (iter, 0);
+					} else {
+						// turn off all other nodes, we can only have one node selected at the same time.
+						value = false;
+					}
+					fileStore.SetValue (iter, 2, value);
 				}
 				while (fileStore.IterNext (ref iter));
 			}
