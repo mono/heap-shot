@@ -501,6 +501,7 @@ namespace HeapShot.Reader {
 			dif.typeIndices = newMap.typeIndices;
 			dif.types = newMap.types;
 			dif.RemoveData (oldMap);
+			dif.name = string.Format ("Diff from {0} to {1}", oldMap.Name, newMap.Name);
 			return dif;
 		}
 		

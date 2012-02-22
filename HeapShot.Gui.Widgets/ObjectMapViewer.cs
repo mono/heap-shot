@@ -75,11 +75,7 @@ namespace HeapShot.Gui.Widgets
 					allObjectsTree.FillAllTypes (map);
 				});
 				
-				if (baseMap != null && map != baseMap) {
-					labelName.Text = System.IO.Path.GetFileName (map.Name) + " - " + System.IO.Path.GetFileName (baseMap.Name);
-				}
-				else
-					labelName.Text = System.IO.Path.GetFileName (map.Name);
+				labelName.Text = System.IO.Path.GetFileName (map.Name);
 					
 				labelCount.Text = map.NumObjects.ToString ("n0");
 				labelMemory.Text = map.TotalMemory.ToString ("n0") + " bytes";
