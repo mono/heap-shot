@@ -525,7 +525,7 @@ namespace HeapShot.Gui.Widgets
 								return string.Format ("Objects of type <b>{0}</b> referenced by <b>{2}</b> objects have an average size of <b>{1:n0}</b> bytes", Markup.EscapeText (GetShortName (node.TypeName)), node.AverageSize, Markup.EscapeText (pname));
 						} else
 							return string.Format ("Objects of type <b>{0}</b> have an average size of <b>{1:n0}</b> bytes", Markup.EscapeText (GetShortName (node.TypeName)), node.AverageSize);
-				}
+					}
 				}
 			} else {
 				FieldReference fr = (FieldReference) ob;
