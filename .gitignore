@@ -4,6 +4,7 @@
 *.pidb
 *.userprefs
 *.app
+*.pdb
 Makefile
 Makefile.in
 heap-shot-gui
