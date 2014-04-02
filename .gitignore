@@ -5,6 +5,8 @@
 *.userprefs
 *.app
 *.pdb
+*.user
+*.suo
 Makefile
 Makefile.in
 heap-shot-gui
