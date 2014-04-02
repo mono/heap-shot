@@ -13,7 +13,7 @@ Enabling HeapShot
 	To use HeapShot, you must run the application to be examined
 	with the following command line:
 
-		mono --profile=heap-shot MyProgram.exe
+		mono --profile=log:heapshot MyProgram.exe
 
 	This activates the `heap-shot' profiler for your application.
 
@@ -107,7 +107,7 @@ Using the Command Line HeapShot
 	to a Mono process that has been started with the
 	--profile=heap-shot command line option:
 
-		mono --profile=heap-shot MyProgram.exe
+		mono --profile=log:heapshot MyProgram.exe
 
 	And on a separate window you type:
 
@@ -144,3 +144,14 @@ Creating a Mac app bundle
 =========================
 
 	Just run "make mac-app"
+
+Compiling and Running in Windows
+================================
+
+	You can compile HeapShot with Microsoft Visual Studio 2012 (other versions might work as well) and also run HeapShot on a Windows system.
+	
+	You will need an installation of Mono and GtkSharp.  This can be obtained from installing Xamarin Studio, or "Mono for Windows, Gtk#, and XSP" from http://www.go-mono.com/mono-downloads/download.html.
+	
+	Open heap-shot.sln in Visual Studio.  Build HeapShot.Gui.  
+	
+	If you get errors pertaining to missing references to atk-sharp, gdk-sharp etc., then you will need to add a Reference Path.  To do this, open the project properties for HeapShot.Gui.Widgets and select "Reference Paths".  Add the path "C:\Program Files (x86)\GtkSharp\2.12\lib\gtk-sharp-2.0" or wherever these DLLs are on your system.  Build the HeapShot.Gui.Widgets project.  It should compile without error.  You can confirm that the References view doesn't show any yellow exclamation mark glyphs.  You can then proceed with building HeapShot.Gui successfully.
