@@ -563,7 +563,7 @@ namespace MonoDevelop.Profiler
 			else if (exinfo == TYPE_SAMPLE_COUNTERS)
 				return new CountersEvent (reader);
 			else
-				throw new Exception ("Unknown sample event type: " + exinfo);
+				throw new ArgumentException("Unknown `TYPE_SAMPLE` event: "+exinfo);
 		}
 	}
 
