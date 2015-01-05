@@ -541,13 +541,15 @@ namespace MonoDevelop.Profiler
 			return visitor.Visit (this);
 		}
 	}
-	
+
 	public abstract class SampleEvent: Event
 	{
-		public const byte TYPE_SAMPLE_HIT = 0 << 4;
-		public const byte TYPE_SAMPLE_USYM = 1 << 4;
-		public const byte TYPE_SAMPLE_UBIN = 2 << 4;
-		
+		public const byte TYPE_SAMPLE_HIT           = 0 << 4;
+		public const byte TYPE_SAMPLE_USYM          = 1 << 4;
+		public const byte TYPE_SAMPLE_UBIN          = 2 << 4;
+		public const byte TYPE_SAMPLE_COUNTERS_DESC = 3 << 4;
+		public const byte TYPE_SAMPLE_COUNTERS      = 4 << 4;
+
 		public static Event Read (LogFileReader reader, byte exinfo)
 		{
 			if (exinfo == TYPE_SAMPLE_HIT)
@@ -556,11 +558,15 @@ namespace MonoDevelop.Profiler
 				return new USymSampleEvent (reader);
 			else if (exinfo == TYPE_SAMPLE_UBIN)
 				return new UBinSampleEvent (reader);
+			else if (exinfo == TYPE_SAMPLE_COUNTERS_DESC)
+				return new CountersDescEvent (reader);
+			else if (exinfo == TYPE_SAMPLE_COUNTERS)
+				return new CountersEvent (reader);
 			else
 				throw new Exception ("Unknown sample event type: " + exinfo);
 		}
 	}
-	
+
 	public class HitSampleEvent: SampleEvent
 	{
 		public readonly SampleType SampleType;
@@ -582,7 +588,7 @@ namespace MonoDevelop.Profiler
 			return visitor.Visit (this);
 		}
 	}
-	
+
 	public class USymSampleEvent: SampleEvent
 	{
 		public readonly long Address;
@@ -623,7 +629,118 @@ namespace MonoDevelop.Profiler
 			return visitor.Visit (this);
 		}
 	}
-	
+
+	public class CountersDescEvent: SampleEvent
+	{
+		public readonly ulong Len; 
+		public CounterSection[] Sections {get; private set;}
+
+		public CountersDescEvent (LogFileReader reader)
+		{
+			Len = reader.ReadULeb128 ();
+			Sections = new CounterSection[Len];
+			for (ulong i = 0; i < Len; i++) {
+				Sections [i] = new CounterSection (reader);
+			}
+		}
+
+		public override object Accept (EventVisitor visitor)
+		{
+			return visitor.Visit (this);
+		}
+	}
+
+	public class CountersEvent: SampleEvent
+	{
+		public readonly ulong Timestamp;
+
+		public CountersEvent (LogFileReader reader)
+		{
+			Timestamp = reader.ReadULeb128 ();
+			var index = reader.ReadULeb128 ();
+			while (index != 0) {
+				new CounterValue (reader, index);
+				index = reader.ReadULeb128 ();
+			}
+		}
+
+		public override object Accept (EventVisitor visitor)
+		{
+			return visitor.Visit (this);
+		}
+	}
+
+	public class CounterValue
+	{
+		public readonly uint Type;
+		public readonly ulong Index;
+
+		public CounterValue (LogFileReader reader, ulong index)
+		{
+			Index = index;
+			Type = (uint)reader.ReadULeb128 ();
+			switch ((CounterValueType)Type) {
+			case CounterValueType.MONO_COUNTER_STRING:
+				if (reader.ReadULeb128 () == 1)
+					reader.ReadNullTerminatedString ();
+				break;
+			case CounterValueType.MONO_COUNTER_WORD:
+			case CounterValueType.MONO_COUNTER_INT:
+			case CounterValueType.MONO_COUNTER_LONG:
+				reader.ReadSLeb128 ();
+				break;
+			case CounterValueType.MONO_COUNTER_UINT:
+			case CounterValueType.MONO_COUNTER_ULONG:
+				reader.ReadULeb128 ();
+				break;
+			case CounterValueType.MONO_COUNTER_DOUBLE:
+				reader.ReadUInt64 ();
+				break;
+			default:
+				throw new ArgumentException (String.Format("Unknown Counter Value type {0} [0x{0:x8}], for counter at index {3}, near byte {1} [0x{1:x8}] of {2}.", Type, reader.Position, reader.Length, Index));
+			}
+		}
+
+		enum CounterValueType
+		{
+			/* Counter type, bits 0-7. */
+			MONO_COUNTER_INT,    /* 32 bit int */
+			MONO_COUNTER_UINT,    /* 32 bit uint */
+			MONO_COUNTER_WORD,   /* pointer-sized int */
+			MONO_COUNTER_LONG,   /* 64 bit int */
+			MONO_COUNTER_ULONG,   /* 64 bit uint */
+			MONO_COUNTER_DOUBLE,
+			MONO_COUNTER_STRING, /* char* */
+			MONO_COUNTER_TIME_INTERVAL, /* 64 bits signed int holding usecs. */
+		}
+	}
+
+	public class CounterSection
+	{
+		public const ulong MONO_COUNTER_PERFCOUNTERS = 1 << 15;
+
+		public readonly ulong Section;
+		public readonly ulong Type;
+		public readonly ulong Unit;
+		public readonly ulong Variance;
+		public readonly ulong Index;
+		public readonly string Name;
+		public readonly string SectionName;
+
+		public CounterSection ( LogFileReader reader )
+		{
+			Section = reader.ReadULeb128 ();
+			if (Section == MONO_COUNTER_PERFCOUNTERS)
+				SectionName = reader.ReadNullTerminatedString ();
+
+			Name = reader.ReadNullTerminatedString ();
+			Type = reader.ReadULeb128 ();
+			Unit = reader.ReadULeb128 ();
+			Variance = reader.ReadULeb128 ();
+			Index = reader.ReadULeb128 ();
+		}
+	}
+
 	public enum SampleType
 	{
 		SAMPLE_CYCLES = 1,
