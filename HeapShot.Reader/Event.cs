@@ -43,9 +43,10 @@ namespace MonoDevelop.Profiler
 		Exception  = 4,
 		Monitor    = 5,
 		Heap       = 6,
-		Sample     = 7
+		Sample     = 7,
+		Runtime    = 8
 	}
-	
+
 	public class Backtrace
 	{
 		public ulong Flags;
@@ -112,6 +113,8 @@ namespace MonoDevelop.Profiler
 				return MonitiorEvent.Read (reader, extendedInfo); 
 			case EventType.Sample:
 				return SampleEvent.Read (reader, extendedInfo);
+			case EventType.Runtime:
+				return RuntimeEvent.Read (reader, extendedInfo);
 			}
 			throw new InvalidOperationException ("invalid event type " + type);	
 		}
@@ -544,6 +547,7 @@ namespace MonoDevelop.Profiler
 
 	public abstract class SampleEvent: Event
 	{
+		//from: `mono/profiler/proflog.h`
 		public const byte TYPE_SAMPLE_HIT           = 0 << 4;
 		public const byte TYPE_SAMPLE_USYM          = 1 << 4;
 		public const byte TYPE_SAMPLE_UBIN          = 2 << 4;
@@ -701,6 +705,7 @@ namespace MonoDevelop.Profiler
 			}
 		}
 
+		//from `mono/utils/mono-counters.h`
 		enum CounterValueType
 		{
 			/* Counter type, bits 0-7. */
@@ -717,6 +722,7 @@ namespace MonoDevelop.Profiler
 
 	public class CounterSection
 	{
+		//from `mono/utils/mono-counters.h`
 		public const ulong MONO_COUNTER_PERFCOUNTERS = 1 << 15;
 
 		public readonly ulong Section;
@@ -741,6 +747,7 @@ namespace MonoDevelop.Profiler
 		}
 	}
 
+	//from `mono/profiler/proflog.h`
 	public enum SampleType
 	{
 		SAMPLE_CYCLES = 1,
@@ -751,4 +758,67 @@ namespace MonoDevelop.Profiler
 		SAMPLE_BRANCH_MISSES = 6,
 		SAMPLE_LAST = 7
 	};
+
+	public class RuntimeEvent : Event
+	{
+		//from `mono/profiler/proflog.h`
+		public const byte TYPE_JITHELPER = 1 << 4;
+
+		public readonly ulong Time;
+
+		public static Event Read (LogFileReader reader, byte extendedInfo)
+		{
+			if (extendedInfo == TYPE_JITHELPER)
+				return new RuntimeJitHelperEvent (reader);
+			throw new ArgumentException ("Unknown `RuntimeEventType`: " + extendedInfo);
+		}
+
+		public RuntimeEvent(LogFileReader reader)
+		{
+			Time = reader.ReadULeb128 ();
+		}
+
+		public override object Accept (EventVisitor visitor)
+		{
+			return visitor.Visit (this);
+		}
+	}
+
+	public class RuntimeJitHelperEvent : RuntimeEvent
+	{
+		public readonly ulong Type;
+		public readonly long BufferAddress;
+		public readonly ulong BufferSize;
+		public readonly string Name;
+
+		public RuntimeJitHelperEvent(LogFileReader reader) : base(reader)
+		{
+			Type = reader.ReadULeb128 ();
+			BufferAddress = reader.ReadSLeb128 ();
+			BufferSize = reader.ReadULeb128 ();
+			if (Type == (ulong)MonoProfilerCodeBufferType.MONO_PROFILER_CODE_BUFFER_SPECIFIC_TRAMPOLINE) {
+				Name = reader.ReadNullTerminatedString ();
+			}
+		}
+
+		public override object Accept (EventVisitor visitor)
+		{
+			return visitor.Visit (this);
+		}
+
+		//from `mono/metadata/profiler.h`
+		enum MonoProfilerCodeBufferType {
+			MONO_PROFILER_CODE_BUFFER_UNKNOWN,
+			MONO_PROFILER_CODE_BUFFER_METHOD,
+			MONO_PROFILER_CODE_BUFFER_METHOD_TRAMPOLINE,
+			MONO_PROFILER_CODE_BUFFER_UNBOX_TRAMPOLINE,
+			MONO_PROFILER_CODE_BUFFER_IMT_TRAMPOLINE,
+			MONO_PROFILER_CODE_BUFFER_GENERICS_TRAMPOLINE,
+			MONO_PROFILER_CODE_BUFFER_SPECIFIC_TRAMPOLINE,
+			MONO_PROFILER_CODE_BUFFER_HELPER,
+			MONO_PROFILER_CODE_BUFFER_MONITOR,
+			MONO_PROFILER_CODE_BUFFER_DELEGATE_INVOKE,
+			MONO_PROFILER_CODE_BUFFER_LAST
+		}
+	}
 }

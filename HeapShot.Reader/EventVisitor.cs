@@ -108,6 +108,16 @@ namespace MonoDevelop.Profiler
 		{
 			return null;
 		}
+
+		public virtual object Visit (RuntimeEvent heapEvent)
+		{
+			return null;
+		}
+
+		public virtual object Visit (RuntimeJitHelperEvent heapEvent)
+		{
+			return null;
+		}
 	}
 }
 
