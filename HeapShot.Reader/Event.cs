@@ -4,9 +4,11 @@
 // Authors:
 //       Mike Krüger <mkrueger@novell.com>
 //       Rolf Bjarne Kvinge <rolf@xamarin.com>
+//       Łukasz Kucharski <lkucharski@antmicro.com>, <luk32@o2.pl>
 // 
 // Copyright (c) 2010 Novell, Inc (http://www.novell.com)
 // Copyright (C) 2011 Xamarin Inc. (http://www.xamarin.com)
+// Copyright (C) 2015 Antmicro Ltd. (http://antmicro.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
