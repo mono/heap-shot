@@ -171,6 +171,9 @@ namespace HeapShot.Gui.Widgets
 		
 		public void FillAllTypes (HeapSnapshot file)
 		{
+			if (file == null)
+				return;
+			
 			this.file = file;
 			this.typeName = null;
 			boxFilter.Visible = true;
