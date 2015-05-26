@@ -98,6 +98,26 @@ namespace MonoDevelop.Profiler
 		{
 			return null;
 		}
+
+		public virtual object Visit (CountersEvent heapEvent)
+		{
+			return null;
+		}
+
+		public virtual object Visit (CountersDescEvent heapEvent)
+		{
+			return null;
+		}
+
+		public virtual object Visit (RuntimeEvent heapEvent)
+		{
+			return null;
+		}
+
+		public virtual object Visit (RuntimeJitHelperEvent heapEvent)
+		{
+			return null;
+		}
 	}
 }
 
