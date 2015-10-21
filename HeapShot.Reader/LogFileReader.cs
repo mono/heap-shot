@@ -1,4 +1,4 @@
-// 
+﻿// 
 // LogFileReader.cs
 //  
 // Authors:
@@ -26,6 +26,7 @@
 
 using System;
 using System.IO;
+using MonoDevelop.Profiler;
 
 namespace HeapShot.Reader
 {
@@ -35,6 +36,8 @@ namespace HeapShot.Reader
 		byte [] buffer = new byte [ushort.MaxValue];
 		int buffered_size;
 		int position;
+
+		public Header Header { get; set; }
 		
 		public LogFileReader (string filename)
 		{

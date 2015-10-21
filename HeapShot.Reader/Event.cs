@@ -1,4 +1,4 @@
-// 
+﻿// 
 // Event.cs
 //  
 // Authors:
@@ -46,7 +46,8 @@ namespace MonoDevelop.Profiler
 		Monitor    = 5,
 		Heap       = 6,
 		Sample     = 7,
-		Runtime    = 8
+		Runtime    = 8,
+		Coverage   = 9
 	}
 
 	public class Backtrace
@@ -83,7 +84,9 @@ namespace MonoDevelop.Profiler
 		public const byte TYPE_GC_MOVE = 3 << 4;
 		public const byte TYPE_GC_HANDLE_CREATED = 4 << 4;
 		public const byte TYPE_GC_HANDLE_DESTROYED = 5 << 4;
-		
+		public const byte TYPE_GC_HANDLE_CREATED_BT   = 6 << 4;
+		public const byte TYPE_GC_HANDLE_DESTROYED_BT = 7 << 4;
+
 		public static Event CreateEvent (LogFileReader reader, EventType type, byte extendedInfo)
 		{
 			switch (type) {
@@ -100,15 +103,17 @@ namespace MonoDevelop.Profiler
 				case TYPE_GC_MOVE:
 					return MoveGcEvent.Read (reader);
 				case TYPE_GC_HANDLE_CREATED:
-					return HandleCreatedGcEvent.Read (reader);
+				case TYPE_GC_HANDLE_CREATED_BT:
+					return HandleCreatedGcEvent.Read (reader, extendedInfo);
 				case TYPE_GC_HANDLE_DESTROYED:
-					return HandleDestroyedGcEvent.Read (reader);
+				case TYPE_GC_HANDLE_DESTROYED_BT:
+					return HandleDestroyedGcEvent.Read (reader, extendedInfo);
 				}
 				throw new InvalidOperationException ("unknown gc type:" + extendedInfo);
 			case EventType.Heap:
 				return HeapEvent.Read (reader, extendedInfo); 
 			case EventType.Metadata:
-				return MetadataEvent.Read (reader); 
+				return MetadataEvent.Read (reader, extendedInfo); 
 			case EventType.Method:
 				return MethodEvent.Read (reader, extendedInfo); 
 			case EventType.Monitor:
@@ -117,6 +122,8 @@ namespace MonoDevelop.Profiler
 				return SampleEvent.Read (reader, extendedInfo);
 			case EventType.Runtime:
 				return RuntimeEvent.Read (reader, extendedInfo);
+			case EventType.Coverage:
+				return CoverageEvent.Read (reader, extendedInfo);
 			}
 			throw new InvalidOperationException ("invalid event type " + type);	
 		}
@@ -250,18 +257,20 @@ namespace MonoDevelop.Profiler
 		public readonly ulong HandleType; // GC handle type (System.Runtime.InteropServices.GCHandleType)
 		public readonly ulong Handle; // GC handle value
 		public readonly long ObjAddr; // object pointer differences from obj_base
-		
-		HandleCreatedGcEvent (LogFileReader reader)
+
+		HandleCreatedGcEvent (LogFileReader reader, byte exinfo)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			HandleType = reader.ReadULeb128 ();
 			Handle = reader.ReadULeb128 ();
 			ObjAddr = reader.ReadSLeb128 ();
+			if (exinfo == TYPE_GC_HANDLE_CREATED_BT)
+				new Backtrace (reader);
 		}
 		
-		public static new Event Read (LogFileReader reader)
+		public static Event Read (LogFileReader reader, byte exinfo)
 		{
-			return new HandleCreatedGcEvent (reader);
+			return new HandleCreatedGcEvent (reader, exinfo);
 		}
 
 		public override object Accept (EventVisitor visitor)
@@ -275,16 +284,18 @@ namespace MonoDevelop.Profiler
 		public readonly ulong HandleType; // GC handle type (System.Runtime.InteropServices.GCHandleType)
 		public readonly ulong Handle; // GC handle value
 		
-		HandleDestroyedGcEvent (LogFileReader reader)
+		HandleDestroyedGcEvent (LogFileReader reader, byte exinfo)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			HandleType = reader.ReadULeb128 ();
 			Handle = reader.ReadULeb128 ();
+			if (exinfo == TYPE_GC_HANDLE_DESTROYED_BT)
+				new Backtrace (reader);
 		}
 		
-		public static new Event Read (LogFileReader reader)
+		public static Event Read (LogFileReader reader, byte exinfo)
 		{
-			return new HandleDestroyedGcEvent (reader);
+			return new HandleDestroyedGcEvent (reader, exinfo);
 		}
 
 		public override object Accept (EventVisitor visitor)
@@ -302,18 +313,20 @@ namespace MonoDevelop.Profiler
 			Image = 2,
 			Assembly = 3,
 			Domain = 4,
-			Thread = 5
+			Thread = 5,
+			Context = 6
 		}
 		
 		public readonly MetaDataType MType; //  metadata type, one of: TYPE_CLASS, TYPE_IMAGE, TYPE_ASSEMBLY, TYPE_DOMAINTYPE_THREAD
 		public readonly long Pointer; // pointer of the metadata type depending on mtype
-		
+		public readonly long Domain; // domain id as a pointer
+
 		public readonly ulong Flags; // must be 0
 		public readonly string Name; // full class/image file or thread name 
 		
 		public readonly long Image; // MonoImage* as a pointer difference from ptr_base
 	
-		MetadataEvent (LogFileReader reader)
+		MetadataEvent (LogFileReader reader, byte extendedInfo)
 		{
 			TimeDiff = reader.ReadULeb128 ();
 			MType = (MetaDataType)reader.ReadByte ();
@@ -328,16 +341,33 @@ namespace MonoDevelop.Profiler
 				Flags = reader.ReadULeb128 ();
 				Name = reader.ReadNullTerminatedString ();
 				break;
-			case MetaDataType.Thread:
+			case MetaDataType.Assembly:
 				Flags = reader.ReadULeb128 ();
 				Name = reader.ReadNullTerminatedString ();
 				break;
+			case MetaDataType.Thread:
+				Flags = reader.ReadULeb128 ();
+				if (reader.Header.Format < 11 || (reader.Header.Format > 10 && extendedInfo == 0)) {
+					Name = reader.ReadNullTerminatedString ();
+				}
+				break;
+			case MetaDataType.Domain:
+				Flags = reader.ReadULeb128 ();
+				if (extendedInfo == 0)
+					Name = reader.ReadNullTerminatedString ();
+				break;
+			case MetaDataType.Context:
+				Flags = reader.ReadULeb128 ();
+				Domain = reader.ReadSLeb128 ();
+				break;
+			default:
+				throw new ArgumentException ("Unknown metadata type: " + MType);
 			}
 		}
 		
-		public static new Event Read (LogFileReader reader)
+		public static Event Read (LogFileReader reader, byte extendedInfo)
 		{
-			return new MetadataEvent (reader);
+			return new MetadataEvent (reader, extendedInfo);
 		}
 
 		public override object Accept (EventVisitor visitor)
@@ -406,7 +436,7 @@ namespace MonoDevelop.Profiler
 		ExceptionEvent (LogFileReader reader, byte exinfo)
 		{
 			TimeDiff = reader.ReadULeb128 ();
-			byte subtype = (byte)(exinfo & 0x70);
+			byte subtype = (byte)(exinfo & ~TYPE_EXCEPTION_BT);
 			if (subtype == TYPE_CLAUSE) {
 				ClauseType = reader.ReadULeb128 ();
 				ClauseNum = reader.ReadULeb128 ();
@@ -415,7 +445,8 @@ namespace MonoDevelop.Profiler
 				Object = reader.ReadSLeb128 ();
 				if ((exinfo & TYPE_EXCEPTION_BT) == TYPE_EXCEPTION_BT)
 					Backtrace = new Backtrace (reader);
-			}
+			} else
+				throw new InvalidOperationException ("Unknown exception event type:" + (exinfo & ~TYPE_EXCEPTION_BT));
 		}
 		
 		public static Event Read (LogFileReader reader, byte exinfo)
@@ -823,4 +854,110 @@ namespace MonoDevelop.Profiler
 			MONO_PROFILER_CODE_BUFFER_LAST
 		}
 	}
+
+	public abstract class CoverageEvent : Event
+	{
+		public const byte TYPE_COVERAGE_ASSEMBLY  = 0 << 4;
+		public const byte TYPE_COVERAGE_METHOD    = 1 << 4;
+		public const byte TYPE_COVERAGE_STATEMENT = 2 << 4;
+		public const byte TYPE_COVERAGE_CLASS     = 3 << 4;
+
+		public static Event Read (LogFileReader reader, byte extendedInfo)
+		{
+			switch (extendedInfo) {
+				case TYPE_COVERAGE_ASSEMBLY: return new CoverageAssemblyEvent (reader);
+				case TYPE_COVERAGE_METHOD: return new CoverageMethodEvent (reader);
+				case TYPE_COVERAGE_STATEMENT: return new CoverageStatementEvent (reader);
+				case TYPE_COVERAGE_CLASS: return new CoverageClassEvent (reader);
+			}
+			throw new ArgumentException ("Unknown `CoverageEventType`: " + extendedInfo);
+		}
+
+		public override object Accept (EventVisitor visitor)
+		{
+			return visitor.Visit (this);
+		}
+	}
+
+	class CoverageAssemblyEvent: CoverageEvent 
+	{
+		public readonly string Name;
+		public readonly string Guid;
+		public readonly string Filename;
+		public readonly ulong NumberOfMethods;
+		public readonly ulong FullyCovered;
+		public readonly ulong PartiallyCovered;
+
+		public CoverageAssemblyEvent (LogFileReader reader)
+		{
+			Name = reader.ReadNullTerminatedString ();
+			Guid = reader.ReadNullTerminatedString ();
+			Filename = reader.ReadNullTerminatedString ();
+			NumberOfMethods = reader.ReadULeb128 ();
+			FullyCovered = reader.ReadULeb128 ();
+			PartiallyCovered = reader.ReadULeb128 ();
+		}
+	}
+
+	class CoverageMethodEvent: CoverageEvent
+	{
+		public readonly string Assembly;
+		public readonly string Class;
+		public readonly string Name;
+		public readonly string Signature;
+		public readonly string Filename;
+		public readonly ulong Token;
+		public readonly ulong MethodId;
+		public readonly ulong Len;
+
+		public CoverageMethodEvent (LogFileReader reader)
+		{
+			Assembly = reader.ReadNullTerminatedString ();
+			Class = reader.ReadNullTerminatedString ();
+			Name = reader.ReadNullTerminatedString ();
+			Signature =reader.ReadNullTerminatedString ();
+			Filename = reader.ReadNullTerminatedString ();
+			Token = reader.ReadULeb128 ();
+			MethodId = reader.ReadULeb128 ();
+			Len = reader.ReadULeb128 ();
+		}
+	}
+
+	class CoverageClassEvent: CoverageEvent
+	{
+		public readonly string Name;
+		public readonly string Class;
+		public readonly ulong NumberOfMethods;
+		public readonly ulong FullyCovered;
+		public readonly ulong PartiallyCovered;
+
+		public CoverageClassEvent (LogFileReader reader)
+		{
+			Name = reader.ReadNullTerminatedString ();
+			Class = reader.ReadNullTerminatedString ();
+			NumberOfMethods = reader.ReadULeb128 ();
+			FullyCovered = reader.ReadULeb128 ();
+			PartiallyCovered = reader.ReadULeb128 ();
+
+		}
+	}
+
+	public class CoverageStatementEvent : CoverageEvent
+	{
+		public readonly ulong MethodId;
+		public readonly ulong Offset;
+		public readonly ulong Counter;
+		public readonly ulong Line;
+		public readonly ulong Column;
+
+		public CoverageStatementEvent (LogFileReader reader)
+		{
+			MethodId = reader.ReadULeb128 ();
+			Offset = reader.ReadULeb128 ();
+			Counter = reader.ReadULeb128 ();
+			Line = reader.ReadULeb128 ();
+			Column = reader.ReadULeb128 ();
+		}
+	}
+
 }

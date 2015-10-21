@@ -1,4 +1,4 @@
-//
+﻿//
 // ObjectMapFileReader.cs
 //
 // Copyright (C) 2005 Novell, Inc.
@@ -176,6 +176,8 @@ namespace HeapShot.Reader {
 				header = Header.Read (reader);
 			if (header == null)
 				return;
+
+			reader.Header = header;
 			
 			while (!reader.IsEof) {
 				// We check if we must cancel before reading more data (and after processing all the data we've read).
@@ -208,7 +210,6 @@ namespace HeapShot.Reader {
 					GcEvent ge;
 					
 					Event e = Event.Read (reader);
-					//Console.WriteLine ("Event: {0}", e);
 					if ((me = e as MetadataEvent) != null)
 						ReadLogFileChunk_Type (me);
 					else if ((he = e as HeapEvent) != null)

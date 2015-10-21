@@ -1,4 +1,4 @@
-// 
+﻿// 
 // EventVisitor.cs
 //  
 // Author:
@@ -115,6 +115,11 @@ namespace MonoDevelop.Profiler
 		}
 
 		public virtual object Visit (RuntimeJitHelperEvent heapEvent)
+		{
+			return null;
+		}
+
+		public virtual object Visit (CoverageEvent heapEvent)
 		{
 			return null;
 		}
