@@ -8,7 +8,6 @@
     <ProjectGuid>{B3DF617E-A397-426C-847B-5D3DCEB57E51}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>HeapShot.Reader</RootNamespace>
-    <ApplicationIcon>.</ApplicationIcon>
     <AssemblyName>HeapShot.Reader</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
   </PropertyGroup>
