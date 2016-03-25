@@ -1,5 +1,5 @@
 AC_INIT(heap-shot.sln)
-AM_INIT_AUTOMAKE(heap-shot, 0.2)
+AM_INIT_AUTOMAKE([heap-shot], [0.2])
 AC_PROG_CC
 
 AC_PATH_PROG(MCS, mcs)
