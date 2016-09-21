@@ -45,10 +45,14 @@ namespace MonoDevelop.Profiler
 		public readonly int Flags; // file format flags, should be 0 for now
 		public readonly int Pid; // pid of the profiled process
 		public readonly int Port; // tcp port for server if != 0
-		public readonly int SysId; //  operating system and architecture identifier
-		
-		Header (LogFileReader reader)
-		{
+//		public readonly int SysId; //  operating system and architecture identifier
+	    public readonly string Args;
+	    public readonly string Arch;
+	    public readonly string OS;
+
+        Header(LogFileReader reader)
+        {
+            Console.WriteLine("hoge");
 			Id = reader.ReadInt32 ();
 			if (Id != LogHeaderId)
 				throw new InvalidOperationException ("Id doesn't match.");
@@ -61,15 +65,18 @@ namespace MonoDevelop.Profiler
 			Flags = reader.ReadInt32 ();
 			Pid = reader.ReadInt32 ();
 			Port = reader.ReadUInt16 ();
-			SysId = reader.ReadUInt16 ();
-		}
-		
-		public static Header Read (LogFileReader reader)
-		{
-			if (!reader.LoadData (32))
-				return null;
+            //		SysId = reader.ReadUInt16 ();
+            Args = reader.ReadVarString();
+            Arch = reader.ReadVarString();
+            OS = reader.ReadVarString();
+        }
 
-			return new Header (reader);
-		}
-	}
+        public static Header Read(LogFileReader reader)
+        {
+            if (!reader.LoadData(30))
+                return null;
+
+            return new Header(reader);
+        }
+    }
 }

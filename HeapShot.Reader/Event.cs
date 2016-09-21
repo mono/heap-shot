@@ -47,17 +47,18 @@ namespace MonoDevelop.Profiler
 		Heap       = 6,
 		Sample     = 7,
 		Runtime    = 8,
-		Coverage   = 9
+		Coverage   = 9,
+        Meta       = 10,
 	}
 
 	public class Backtrace
 	{
-		public ulong Flags;
+//		public ulong Flags;
 		public long[] Frame;
 		
 		public Backtrace (LogFileReader reader)
 		{
-			Flags = reader.ReadULeb128 ();
+//			Flags = reader.ReadULeb128 ();
 			ulong num = reader.ReadULeb128 ();
 			Frame = new long[num];
 			for (ulong i = 0; i < num; i++) {
@@ -87,6 +88,12 @@ namespace MonoDevelop.Profiler
 		public const byte TYPE_GC_HANDLE_CREATED_BT   = 6 << 4;
 		public const byte TYPE_GC_HANDLE_DESTROYED_BT = 7 << 4;
 
+	    public const byte TYPE_GC_FINALIZE_START = 8 << 4;
+	    public const byte TYPE_GC_FINALIZE_END = 9 << 4;
+	    public const byte TYPE_GC_FINALIZE_OBJECT_START = 10 << 4;
+	    public const byte TYPE_GC_FINALIZE_OBJECT_END = 11 << 4;
+
+	    public const byte TYPE_SYNC_POINT = 0 << 4;
 		public static Event CreateEvent (LogFileReader reader, EventType type, byte extendedInfo)
 		{
 			switch (type) {
@@ -108,8 +115,14 @@ namespace MonoDevelop.Profiler
 				case TYPE_GC_HANDLE_DESTROYED:
 				case TYPE_GC_HANDLE_DESTROYED_BT:
 					return HandleDestroyedGcEvent.Read (reader, extendedInfo);
-				}
-				throw new InvalidOperationException ("unknown gc type:" + extendedInfo);
+                case TYPE_GC_FINALIZE_START:
+                case TYPE_GC_FINALIZE_END:
+                    return HandleFinalizeEvent.Read(reader, extendedInfo);
+                case TYPE_GC_FINALIZE_OBJECT_START:
+                case TYPE_GC_FINALIZE_OBJECT_END:
+                    return HandleFinalizeObjectEvent.Read(reader, extendedInfo);
+                }
+                throw new InvalidOperationException ("unknown gc type:" + extendedInfo);
 			case EventType.Heap:
 				return HeapEvent.Read (reader, extendedInfo); 
 			case EventType.Metadata:
@@ -124,8 +137,10 @@ namespace MonoDevelop.Profiler
 				return RuntimeEvent.Read (reader, extendedInfo);
 			case EventType.Coverage:
 				return CoverageEvent.Read (reader, extendedInfo);
-			}
-			throw new InvalidOperationException ("invalid event type " + type);	
+            case EventType.Meta:
+                return MetaEvent.Read(reader, extendedInfo);
+            }
+            throw new InvalidOperationException ("invalid event type " + type);	
 		}
 		
 		public static Event Read (LogFileReader reader)
@@ -193,10 +208,12 @@ namespace MonoDevelop.Profiler
 	
 	public class GcEvent : Event
 	{
-		public readonly GcEventType EventType; //  GC event (MONO_GC_EVENT_* from profiler.h)
-		public readonly ulong Generation;  // GC generation event refers to
-		
-		public enum GcEventType {
+        //public readonly GcEventType EventType; //  GC event (MONO_GC_EVENT_* from profiler.h)
+        //public readonly ulong Generation;  // GC generation event refers to
+        public readonly GcEventType EventType; //  GC event (MONO_GC_EVENT_* from profiler.h)
+        public readonly byte Generation;  // GC generation event refers to
+
+        public enum GcEventType {
 			Start,
 			MarkStart,
 			MarkEnd,
@@ -212,11 +229,13 @@ namespace MonoDevelop.Profiler
 		GcEvent (LogFileReader reader)
 		{
 			TimeDiff = reader.ReadULeb128 ();
-			EventType = (GcEventType) reader.ReadULeb128 ();
-			Generation = reader.ReadULeb128 ();
-		}
-		
-		public static new Event Read (LogFileReader reader)
+            //EventType = (GcEventType) reader.ReadULeb128 ();
+            //Generation = reader.ReadULeb128 ();
+            EventType = (GcEventType)reader.ReadByte();
+            Generation = reader.ReadByte();
+        }
+
+        public static new Event Read (LogFileReader reader)
 		{
 			return new GcEvent (reader);
 		}
@@ -303,9 +322,47 @@ namespace MonoDevelop.Profiler
 			return visitor.Visit (this);
 		}
 	}
-	
-	// type == Methadata
-	public class MetadataEvent : Event
+    public class HandleFinalizeObjectEvent : Event
+    {
+        public readonly long Object; // object pointer differences from obj_base
+
+        HandleFinalizeObjectEvent(LogFileReader reader, byte exinfo)
+        {
+            TimeDiff = reader.ReadULeb128();
+            Object = reader.ReadSLeb128();
+        }
+
+        public static Event Read(LogFileReader reader, byte exinfo)
+        {
+            return new HandleFinalizeObjectEvent(reader, exinfo);
+        }
+
+        public override object Accept(EventVisitor visitor)
+        {
+            return visitor.Visit(this);
+        }
+    }
+    public class HandleFinalizeEvent : Event
+    {
+
+        HandleFinalizeEvent(LogFileReader reader, byte exinfo)
+        {
+            TimeDiff = reader.ReadULeb128();
+        }
+
+        public static Event Read(LogFileReader reader, byte exinfo)
+        {
+            return new HandleFinalizeEvent(reader, exinfo);
+        }
+
+        public override object Accept(EventVisitor visitor)
+        {
+            return visitor.Visit(this);
+        }
+    }
+
+    // type == Methadata
+    public class MetadataEvent : Event
 	{
 		public enum MetaDataType : byte
 		{
@@ -321,7 +378,7 @@ namespace MonoDevelop.Profiler
 		public readonly long Pointer; // pointer of the metadata type depending on mtype
 		public readonly long Domain; // domain id as a pointer
 
-		public readonly ulong Flags; // must be 0
+//		public readonly ulong Flags; // must be 0
 		public readonly string Name; // full class/image file or thread name 
 		
 		public readonly long Image; // MonoImage* as a pointer difference from ptr_base
@@ -334,30 +391,32 @@ namespace MonoDevelop.Profiler
 			switch (MType) {
 			case MetaDataType.Class:
 				Image = reader.ReadSLeb128 ();
-				Flags = reader.ReadULeb128 ();
+//				Flags = reader.ReadULeb128 ();
 				Name = reader.ReadNullTerminatedString ();
 				break;
 			case MetaDataType.Image:
-				Flags = reader.ReadULeb128 ();
+//				Flags = reader.ReadULeb128 ();
 				Name = reader.ReadNullTerminatedString ();
 				break;
 			case MetaDataType.Assembly:
-				Flags = reader.ReadULeb128 ();
+//				Flags = reader.ReadULeb128 ();
 				Name = reader.ReadNullTerminatedString ();
 				break;
 			case MetaDataType.Thread:
-				Flags = reader.ReadULeb128 ();
-				if (reader.Header.Format < 11 || (reader.Header.Format > 10 && extendedInfo == 0)) {
-					Name = reader.ReadNullTerminatedString ();
-				}
-				break;
+                //				Flags = reader.ReadULeb128 ();
+                //if (reader.Header.Format < 11 || (reader.Header.Format > 10 && extendedInfo == 0)) {
+                //	Name = reader.ReadNullTerminatedString ();
+                //}
+                if (extendedInfo == 0)
+                    Name = reader.ReadNullTerminatedString();
+                break;
 			case MetaDataType.Domain:
-				Flags = reader.ReadULeb128 ();
+//				Flags = reader.ReadULeb128 ();
 				if (extendedInfo == 0)
 					Name = reader.ReadNullTerminatedString ();
 				break;
 			case MetaDataType.Context:
-				Flags = reader.ReadULeb128 ();
+//				Flags = reader.ReadULeb128 ();
 				Domain = reader.ReadSLeb128 ();
 				break;
 			default:
@@ -423,10 +482,11 @@ namespace MonoDevelop.Profiler
 		public const byte TYPE_THROW = 0 << 4;
 		public const byte TYPE_CLAUSE = 1 << 4;
 		public const byte TYPE_EXCEPTION_BT = 1 << 7;
-		
-		// Type clause
-		public readonly ulong ClauseType; // finally/catch/fault/filter
-		public readonly ulong ClauseNum; // the clause number in the method header
+
+        // Type clause
+        //		public readonly ulong ClauseType; // finally/catch/fault/filter
+        public readonly byte ClauseType; // finally/catch/fault/filter
+        public readonly ulong ClauseNum; // the clause number in the method header
 		public readonly long Method; //  MonoMethod* as a pointer difference from the last such pointer or the buffer method_base
 		
 		// Type throw
@@ -438,7 +498,8 @@ namespace MonoDevelop.Profiler
 			TimeDiff = reader.ReadULeb128 ();
 			byte subtype = (byte)(exinfo & ~TYPE_EXCEPTION_BT);
 			if (subtype == TYPE_CLAUSE) {
-				ClauseType = reader.ReadULeb128 ();
+				//ClauseType = reader.ReadULeb128 ();
+			    ClauseType = reader.ReadByte();
 				ClauseNum = reader.ReadULeb128 ();
 				Method = reader.ReadSLeb128 ();
 			} else if (subtype == TYPE_THROW) {
@@ -534,26 +595,33 @@ namespace MonoDevelop.Profiler
 		
 		HeapEvent (LogFileReader reader, byte exinfo)
 		{
-			if (exinfo == TYPE_HEAP_START) {
+            if (exinfo == TYPE_HEAP_START) {
 				Type = EventType.Start;
 				TimeDiff = reader.ReadULeb128 ();
 			} else if (exinfo == TYPE_HEAP_END) {
 				Type = EventType.End;
 				TimeDiff = reader.ReadULeb128 ();
 			} else if (exinfo == TYPE_HEAP_ROOT) {
-				Type = EventType.Root;
+                //omanuke
+                TimeDiff = reader.ReadULeb128();
+
+                Type = EventType.Root;
 				ulong nroots = reader.ReadULeb128 ();
 				reader.ReadULeb128 (); // gcs
-				RootRefs = new long [nroots];
+                RootRefs = new long [nroots];
 				RootRefTypes = new RootType [nroots];
 				RootRefExtraInfos = new ulong [nroots];
 				for (ulong n=0; n<nroots; n++) {
 					RootRefs [n] = reader.ReadSLeb128 ();
-					RootRefTypes [n] = (RootType) reader.ReadULeb128 ();
-					RootRefExtraInfos [n] = reader.ReadULeb128 ();
+                    //					RootRefTypes [n] = (RootType) reader.ReadULeb128 ();
+                    RootRefTypes[n] = (RootType)reader.ReadByte();
+                    RootRefExtraInfos[n] = reader.ReadULeb128 ();
 				}
 			} else if (exinfo == TYPE_HEAP_OBJECT) {
-				Type = EventType.Object;
+                
+                TimeDiff = reader.ReadULeb128();
+
+                Type = EventType.Object;
 				Object = reader.ReadSLeb128 ();
 				Class = reader.ReadSLeb128 ();
 				Size = reader.ReadULeb128 ();
@@ -607,20 +675,34 @@ namespace MonoDevelop.Profiler
 	public class HitSampleEvent: SampleEvent
 	{
 		public readonly SampleType SampleType;
-		public readonly ulong Timestamp;
-		public readonly long[] InstructionPointers;
-		
-		public HitSampleEvent (LogFileReader reader)
+
+	    public readonly long Thread;
+
+		//public readonly ulong Timestamp;
+        public readonly long[] InstructionPointers;
+        public readonly long[] Methods;
+
+        public HitSampleEvent (LogFileReader reader)
 		{
-			SampleType = (SampleType) reader.ReadULeb128 ();
-			Timestamp = reader.ReadULeb128 ();
-			ulong count = reader.ReadULeb128 ();
+            TimeDiff = reader.ReadULeb128();
+            //			SampleType = (SampleType) reader.ReadULeb128 ();
+            SampleType = (SampleType)reader.ReadByte();
+            //Timestamp = reader.ReadULeb128 ();
+            Thread = reader.ReadSLeb128();
+            ulong count = reader.ReadULeb128 ();
 			InstructionPointers = new long [count];
 			for (uint n=0; n<count; n++)
 				InstructionPointers [n] = reader.ReadSLeb128 ();
-		}
-		
-		public override object Accept (EventVisitor visitor)
+
+            //Xamarin.Profiler 0.34 doesn't generate data below?
+
+            //ulong mcount = reader.ReadULeb128();
+            //Methods = new long[mcount];
+            //for (uint n = 0; n < mcount; n++)
+            //    Methods[n] = reader.ReadSLeb128();
+        }
+
+        public override object Accept (EventVisitor visitor)
 		{
 			return visitor.Visit (this);
 		}
@@ -634,7 +716,9 @@ namespace MonoDevelop.Profiler
 		
 		public USymSampleEvent (LogFileReader reader)
 		{
-			Address = reader.ReadSLeb128 ();
+            TimeDiff = reader.ReadULeb128();
+
+            Address = reader.ReadSLeb128 ();
 			Size = reader.ReadULeb128 ();
 			Name = reader.ReadNullTerminatedString ();
 		}
@@ -674,7 +758,10 @@ namespace MonoDevelop.Profiler
 
 		public CountersDescEvent (LogFileReader reader)
 		{
-			Len = reader.ReadULeb128 ();
+            //omanuke
+            TimeDiff = reader.ReadULeb128();
+
+            Len = reader.ReadULeb128 ();
 			Sections = new CounterSection[Len];
 			for (ulong i = 0; i < Len; i++) {
 				Sections [i] = new CounterSection (reader);
@@ -693,7 +780,9 @@ namespace MonoDevelop.Profiler
 
 		public CountersEvent (LogFileReader reader)
 		{
-			Timestamp = reader.ReadULeb128 ();
+            //TimeDiff = reader.ReadULeb128();
+
+            Timestamp = reader.ReadULeb128 ();
 			var index = reader.ReadULeb128 ();
 			while (index != 0) {
 				new CounterValue (reader, index);
@@ -709,14 +798,16 @@ namespace MonoDevelop.Profiler
 
 	public class CounterValue
 	{
-		public readonly uint Type;
-		public readonly ulong Index;
+        //		public readonly uint Type;
+        public readonly byte Type;
+        public readonly ulong Index;
 
 		public CounterValue (LogFileReader reader, ulong index)
 		{
 			Index = index;
-			Type = (uint)reader.ReadULeb128 ();
-			switch ((CounterValueType)Type) {
+            //			Type = (uint)reader.ReadULeb128 ();
+            Type = reader.ReadByte();
+            switch ((CounterValueType)Type) {
 			case CounterValueType.MONO_COUNTER_STRING:
 				if (reader.ReadULeb128 () == 1)
 					reader.ReadNullTerminatedString ();
@@ -759,9 +850,12 @@ namespace MonoDevelop.Profiler
 		public const ulong MONO_COUNTER_PERFCOUNTERS = 1 << 15;
 
 		public readonly ulong Section;
-		public readonly ulong Type;
-		public readonly ulong Unit;
-		public readonly ulong Variance;
+        //public readonly ulong Type;
+        //public readonly ulong Unit;
+        //public readonly ulong Variance;
+        public readonly byte Type;
+        public readonly byte Unit;
+        public readonly byte Variance;
 		public readonly ulong Index;
 		public readonly string Name;
 		public readonly string SectionName;
@@ -773,10 +867,13 @@ namespace MonoDevelop.Profiler
 				SectionName = reader.ReadNullTerminatedString ();
 
 			Name = reader.ReadNullTerminatedString ();
-			Type = reader.ReadULeb128 ();
-			Unit = reader.ReadULeb128 ();
-			Variance = reader.ReadULeb128 ();
-			Index = reader.ReadULeb128 ();
+            //Type = reader.ReadULeb128 ();
+            //Unit = reader.ReadULeb128 ();
+            //Variance = reader.ReadULeb128 ();
+            Type = reader.ReadByte();
+            Unit = reader.ReadByte();
+            Variance = reader.ReadByte();
+            Index = reader.ReadULeb128 ();
 		}
 	}
 
@@ -819,15 +916,17 @@ namespace MonoDevelop.Profiler
 
 	public class RuntimeJitHelperEvent : RuntimeEvent
 	{
-		public readonly ulong Type;
-		public readonly long BufferAddress;
+        //		public readonly ulong Type;
+        public readonly byte Type;
+        public readonly long BufferAddress;
 		public readonly ulong BufferSize;
 		public readonly string Name;
 
 		public RuntimeJitHelperEvent(LogFileReader reader) : base(reader)
 		{
-			Type = reader.ReadULeb128 ();
-			BufferAddress = reader.ReadSLeb128 ();
+            //			Type = reader.ReadULeb128 ();
+            Type = reader.ReadByte();
+            BufferAddress = reader.ReadSLeb128 ();
 			BufferSize = reader.ReadULeb128 ();
 			if (Type == (ulong)MonoProfilerCodeBufferType.MONO_PROFILER_CODE_BUFFER_SPECIFIC_TRAMPOLINE) {
 				Name = reader.ReadNullTerminatedString ();
@@ -960,4 +1059,26 @@ namespace MonoDevelop.Profiler
 		}
 	}
 
+    public class MetaEvent : SampleEvent
+    {
+        public readonly byte MonoProfilerSyncPointType;
+
+        MetaEvent(LogFileReader reader,byte exinfo)
+        {
+            TimeDiff = reader.ReadULeb128();
+            if (exinfo ==TYPE_SYNC_POINT)
+            {
+                MonoProfilerSyncPointType = reader.ReadByte();
+            }
+        }
+        public static Event Read(LogFileReader reader, byte extendedInfo)
+        {
+            return new MetaEvent(reader, extendedInfo);
+        }
+
+        public override object Accept(EventVisitor visitor)
+        {
+            return visitor.Visit(this);
+        }
+    }
 }

@@ -53,13 +53,21 @@ namespace MonoDevelop.Profiler
 		{
 			return null;
 		}
-		
-		public virtual object Visit (HandleDestroyedGcEvent handleDestroyedGcEvent)
-		{
-			return null;
-		}
-		
-		public virtual object Visit (MetadataEvent metadataEvent)
+
+        public virtual object Visit(HandleDestroyedGcEvent handleDestroyedGcEvent)
+        {
+            return null;
+        }
+        public virtual object Visit(HandleFinalizeObjectEvent handleDestroyedGcEvent)
+        {
+            return null;
+        }
+        public virtual object Visit(HandleFinalizeEvent handleDestroyedGcEvent)
+        {
+            return null;
+        }
+
+        public virtual object Visit (MetadataEvent metadataEvent)
 		{
 			return null;
 		}
@@ -123,6 +131,10 @@ namespace MonoDevelop.Profiler
 		{
 			return null;
 		}
-	}
+        public virtual object Visit(MetaEvent heapEvent)
+        {
+            return null;
+        }
+    }
 }
 
