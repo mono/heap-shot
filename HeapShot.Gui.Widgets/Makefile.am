@@ -1,7 +1,7 @@
 NAME = HeapShot.Gui.Widgets
 TARGET = $(NAME).dll
 CSPROJ = $(NAME).csproj
-XBUILD = xbuild
+XBUILD = $(shell (xbuild /version &> /dev/null && echo xbuild) || (/Library/Frameworks/Mono.framework/Commands/xbuild /version &> /dev/null && echo /Library/Frameworks/Mono.framework/Commands/xbuild))
 XBUILD_ARGS = "/property:Configuration=Debug" $(CSPROJ)
 
 CSFILES = \
