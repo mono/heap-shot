@@ -139,7 +139,7 @@ public partial class MainWindow: Gtk.Window
 		statusBarFileName.Text = file;
 		mapReader = new ObjectMapReader (file);
 		mapReader.HeapSnapshotAdded += delegate (object o, HeapShotEventArgs args) {
-			Application.Invoke (delegate {
+			Application.Invoke ((o2, a2) => {
 				viewer.AddSnapshot (args.HeapSnapshot);
 			});
 		};
