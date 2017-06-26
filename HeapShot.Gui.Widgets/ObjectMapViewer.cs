@@ -71,7 +71,7 @@ namespace HeapShot.Gui.Widgets
 			lastMap = map;
 			
 			if (map != null) {
-				Application.Invoke (delegate {
+				Application.Invoke ((o, a) => {
 					allObjectsTree.FillAllTypes (map);
 				});
 				
