@@ -32,6 +32,7 @@ using HeapShot.Reader;
 using System.Diagnostics;
 using System.Threading;
 using IgeMacIntegration;
+using System.Threading.Tasks;
 
 public partial class MainWindow: Gtk.Window
 {
@@ -40,6 +41,7 @@ public partial class MainWindow: Gtk.Window
 	Process profProcess;
 	ObjectMapReader mapReader;
 	System.Threading.Timer timer;
+	int snapshotPort = -1;
 	
 	public MainWindow (List<string> files, bool only_view, bool continuous_reload) : base (string.Empty)
 	{
@@ -58,7 +60,7 @@ public partial class MainWindow: Gtk.Window
 			this.open.Visible = false;
 		}
 		
-		if (PlatformDetection.IsMac) {
+/*		if (PlatformDetection.IsMac) {
 			//enable the global key handler for keyboard shortcuts
 			IgeMacMenu.GlobalKeyHandlerEnabled = true;
 
@@ -67,7 +69,7 @@ public partial class MainWindow: Gtk.Window
 
 			//hide the menu bar so it no longer displays within the window
 			this.menubar1.Hide ();
-		}
+		}*/
 		
 		OpenFiles (files);
 		
@@ -179,32 +181,54 @@ public partial class MainWindow: Gtk.Window
 			Console.WriteLine ("Exception while processing log file: {0}", ex);
 		}
 	}
-	
+
 	void ProfileApplication (string file)
 	{
-		string mono = typeof(int).Assembly.Location;
-		for (int n=0; n<4; n++) mono = System.IO.Path.GetDirectoryName (mono);
-		mono = System.IO.Path.Combine (mono, "bin","mono");
+		string mono = typeof (int).Assembly.Location;
+		for (int n = 0; n < 4; n++) mono = System.IO.Path.GetDirectoryName (mono);
+		mono = System.IO.Path.Combine (mono, "bin", "mono");
 		ResetFile ();
 		outfile = System.IO.Path.GetTempFileName ();
 		profProcess = new Process ();
 		profProcess.StartInfo.FileName = mono;
-		profProcess.StartInfo.Arguments = "--gc=sgen --profile=log:heapshot=ondemand,nocalls,output=-" + outfile + " \"" + file + "\"";
+		profProcess.StartInfo.Arguments = "--gc=sgen --profile=log:heapshot=ondemand,nocalls,noalloc,output=" + outfile + " \"" + file + "\"";
 		profProcess.StartInfo.UseShellExecute = false;
 		profProcess.EnableRaisingEvents = true;
 		profProcess.Exited += delegate {
 			Application.Invoke (ProcessExited);
 		};
+
+		snapshotPort = -1;
+
+		if (watchCanceller != null)
+			watchCanceller.Cancel ();
+		
+		watchCanceller = new CancellationTokenSource ();
+
 		try {
 			profProcess.Start ();
 			stopAction.Sensitive = true;
 			executeAction.Sensitive = false;
-			ForceHeapSnapshotAction.Sensitive = true;
 		} catch (Exception ex) {
 			Console.WriteLine (ex);
 			profProcess = null;
 		}
-		OpenFile (outfile);
+		WatchForFileCreation (outfile);
+	}
+
+	CancellationTokenSource watchCanceller;
+
+	async void WatchForFileCreation (string file)
+	{
+		while (true) {
+			var header = ObjectMapReader.TryReadHeader (file);
+			if (header != null) {
+				snapshotPort = header.Port;
+				ForceHeapSnapshotAction.Sensitive = true;
+				return;
+			}
+			await Task.Delay (200);
+		}
 	}
 	
 	void ProcessExited (object o, EventArgs a)
@@ -213,7 +237,7 @@ public partial class MainWindow: Gtk.Window
 		stopAction.Sensitive = false;
 		executeAction.Sensitive = true;
 		ForceHeapSnapshotAction.Sensitive = false;
-		Reload (false);
+		OpenFile (outfile);
 	}
 
 	protected virtual void OnOpenActivated(object sender, System.EventArgs e)
@@ -246,7 +270,7 @@ public partial class MainWindow: Gtk.Window
 	protected virtual void OnMemorySnapshotActivated(object sender, System.EventArgs e)
 	{
 		try {
-			mapReader.ForceSnapshot ();
+			ObjectMapReader.ForceSnapshot (snapshotPort);
 		} catch (Exception ex) {
 			var dialog = new MessageDialog (this, DialogFlags.Modal, MessageType.Error, ButtonsType.Ok, ex.Message);
 			try {

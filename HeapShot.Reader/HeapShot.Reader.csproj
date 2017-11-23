@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>HeapShot.Reader</RootNamespace>
     <AssemblyName>HeapShot.Reader</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -43,21 +43,15 @@
     <Compile Include="ObjectReference.cs" />
     <Compile Include="ReferenceNode.cs" />
     <Compile Include="TypeInfo.cs" />
-    <Compile Include="Buffer.cs" />
-    <Compile Include="Event.cs" />
-    <Compile Include="EventVisitor.cs" />
-    <Compile Include="LogBuffer.cs" />
-    <Compile Include="Util.cs" />
-    <Compile Include="Header.cs" />
     <Compile Include="Graph.cs" />
     <Compile Include="IProgressListener.cs" />
     <Compile Include="HeapSnapshot.cs" />
     <Compile Include="HeapShotEventArgs.cs" />
-    <Compile Include="LogFileReader.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="Mono.Profiler.Log" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

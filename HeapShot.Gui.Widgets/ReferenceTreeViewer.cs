@@ -261,7 +261,7 @@ namespace HeapShot.Gui.Widgets
 				while (Gtk.Application.EventsPending ())
 					Gtk.Application.RunIteration ();
 				node = file.GetRootReferenceTree (dlg, type);
-				cancelled = dlg.Cancelled;
+				cancelled = dlg.CancellationToken.IsCancellationRequested;
 				dlg.Destroy ();
 				if (node == null)
 					return TreeIter.Zero;

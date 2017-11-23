@@ -3,12 +3,13 @@
 //
 
 using System;
+using System.Threading;
 
 namespace HeapShot.Reader
 {
 	public interface IProgressListener
 	{
 		void ReportProgress (string message, double progress);
-		bool Cancelled { get; }
+		CancellationToken CancellationToken { get; }
 	}
 }

@@ -21,14 +21,11 @@
 //
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Text.RegularExpressions;
-using MonoDevelop.Profiler;
 using HeapShot.Reader.Graphs;
 
-namespace HeapShot.Reader {
+namespace HeapShot.Reader
+{
 
 	public class HeapSnapshot 
 	{
@@ -345,7 +342,7 @@ namespace HeapShot.Reader {
 			int nc = 0;
 			foreach (int obj in GetObjectsByType (type)) {
 				
-				if (listener.Cancelled)
+				if (listener.CancellationToken.IsCancellationRequested)
 					return null;
 				
 				rootInfo.nc = 0;

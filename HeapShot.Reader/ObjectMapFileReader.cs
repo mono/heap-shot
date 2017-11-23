@@ -21,30 +21,26 @@
 //
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text.RegularExpressions;
-using MonoDevelop.Profiler;
-using HeapShot.Reader.Graphs;
 using System.Net.Sockets;
+using Mono.Profiler.Log;
+using System.Threading;
 
-namespace HeapShot.Reader {
+namespace HeapShot.Reader
+{
 
 	public class ObjectMapReader: IDisposable
 	{
 		const string log_file_label = "heap-shot logfile";
 		
 		string name;
-		LogFileReader reader;
+        LogStream reader;
 		DateTime timestamp;
 		ulong totalMemory;
 		
-		Header header;
-		
-		long currentPtrBase;
-		long currentObjBase;
+		LogStreamHeader header;
 		
 		internal const long UnknownTypeId = -1;
 		
@@ -59,6 +55,7 @@ namespace HeapShot.Reader {
 		
 		HeapShotData currentData;
 		List<HeapSnapshot> shots = new List<HeapSnapshot> ();
+        IProgressListener progress;
 		
 		public event EventHandler<HeapShotEventArgs> HeapSnapshotAdded;
 		
@@ -85,6 +82,25 @@ namespace HeapShot.Reader {
 		{
 			reader.Dispose ();
 		}
+
+		static public LogStreamHeader TryReadHeader (string filename)
+		{
+			try {
+				var s = File.OpenRead (filename);
+				var reader = new LogStream (s);
+
+				var visitor = new HeadReaderLogEventVisitor ();
+				var processor = new LogProcessor (reader, visitor, new NullLogEventVisitor ());
+
+				try {
+					processor.Process (visitor.TokenSource.Token);
+				} catch {
+				}
+				return processor.StreamHeader;
+			} catch {
+				return null;
+			}
+		}
 		
 		
 		public void Read ()
@@ -105,11 +121,14 @@ namespace HeapShot.Reader {
 				if (tim == timestamp)
 					return;
 				timestamp = tim;
-				
-				if (reader == null)
-					reader = new LogFileReader (name);
-				
-				ReadLogFile (progress);
+
+                if (reader == null) {
+                    var s = File.OpenRead(name);
+                    reader = new LogStream(s);
+                }
+
+                this.progress = progress;
+				ReadLogFile ();
 			} catch (Exception ex) {
 				Console.WriteLine (ex);
 			} finally {
@@ -147,15 +166,10 @@ namespace HeapShot.Reader {
 			get { return header == null ? 0 : header.Port; }
 		}
 		
-		public void ForceSnapshot ()
+		public static void ForceSnapshot (int port)
 		{
-			if (header == null) {
-				Read ();
-				if (header == null)
-					throw new Exception ("Log file could not be opened");
-			}
 			using (TcpClient client = new TcpClient ()) {
-				client.Connect ("127.0.0.1", header.Port);
+				client.Connect ("127.0.0.1", port);
 				using (StreamWriter sw = new StreamWriter (client.GetStream ())) {
 					sw.WriteLine ("heapshot");
 					sw.Flush ();
@@ -166,67 +180,31 @@ namespace HeapShot.Reader {
 		//
 		// Code to read the log files generated at runtime
 		//
-		private void ReadLogFile (IProgressListener progress)
+		void ReadLogFile ()
 		{
-			BufferHeader bheader;
-			long start_position = reader.Position;
-			long last_pct = 0;
-			
-			if (header == null)
-				header = Header.Read (reader);
-			if (header == null)
-				return;
+			last_pct = -1;
 
-			reader.Header = header;
-			
-			while (!reader.IsEof) {
-				// We check if we must cancel before reading more data (and after processing all the data we've read).
-				// This way we don't cancel in the middle of event processing (since we store data at class level
-				// we may end up with corruption the next time we read the same buffer otherwise).
-				if (progress != null) {
-					if (progress.Cancelled)
-						return;
-						
-					long pct = (reader.Position - start_position) * 100 / (reader.Length - start_position);
-					if (pct != last_pct) {
-						last_pct = pct;
-						progress.ReportProgress ("Loading profiler log", pct / 100.0f);
-					}
-				}
-				
-				bheader = BufferHeader.Read (reader);
-				if (bheader == null) {
-					// entire buffer isn't available (yet)
-					return;
-				}
-				
-				//Console.WriteLine ("BUFFER ThreadId: " + bheader.ThreadId + " Len:" + bheader.Length);
-				currentObjBase = bheader.ObjBase;
-				currentPtrBase = bheader.PtrBase;
+			var processor = new LogProcessor (reader, new HeapShotLogEventVisitor { Parent = this }, new NullLogEventVisitor ());
+			processor.Process (progress.CancellationToken);
 
-				while (!reader.IsBufferEmpty) {
-					MetadataEvent me;
-					HeapEvent he;
-					GcEvent ge;
-					
-					Event e = Event.Read (reader);
-					if ((me = e as MetadataEvent) != null)
-						ReadLogFileChunk_Type (me);
-					else if ((he = e as HeapEvent) != null)
-						ReadLogFileChunk_Object (he);
-					else if ((ge = e as GcEvent) != null)
-						ReadGcEvent (ge);
-				}
-			}
+			header = processor.StreamHeader;
 		}
 
-		private void ReadLogFileChunk_Type (MetadataEvent t)
+        int last_pct;
+
+        void UpdatePosition ()
+        {
+			long pct = (reader.BaseStream.Position * 100) / reader.BaseStream.Length;
+			if (pct != last_pct) {
+				last_pct = (int) pct;
+				progress.ReportProgress ("Loading profiler log", pct / 100.0f);
+			}
+        }
+
+        void ReadClassEvent (ClassLoadEvent t)
 		{
-			if (t.MType != MetadataEvent.MetaDataType.Class)
-				return;
-			
 			TypeInfo ti = new TypeInfo ();
-			ti.Code = t.Pointer + currentPtrBase;
+			ti.Code = t.ClassPointer;
 			ti.Name = t.Name;
 			ti.FieldsIndex = currentData.FieldCodes.Count;
 			
@@ -241,70 +219,73 @@ namespace HeapShot.Reader {
 			currentData.TypesList.Add (ti);
 		}
 		
-		void ReadGcEvent (GcEvent ge)
+        void ReadGcEvent (GCEvent ge)
 		{
-			if (ge.EventType == GcEvent.GcEventType.Start)
+			if (ge.Type == LogGCEvent.Begin)
 				currentData.ResetHeapData ();
 		}
 		
 		int shotCount;
+
+        void ReadHeapStartEvent ()
+        {
+            //Console.WriteLine ("ppe: START");
+        }
 		
-		private void ReadLogFileChunk_Object (HeapEvent he)
+        void ReadHeapEndEvent ()
+        {
+            HeapSnapshot shot = new HeapSnapshot();
+            shotCount++;
+            shot.Build(shotCount.ToString(), currentData);
+            AddShot(shot);
+        }
+
+        void ReadHeapObjectEvent(HeapObjectEvent he)
+        {
+            ObjectInfo ob = new ObjectInfo();
+            ob.Code = he.ObjectPointer;
+            ob.Size = (ulong)he.ObjectSize;
+            ob.RefsIndex = currentData.ReferenceCodes.Count;
+            ob.RefsCount = he.References != null ? he.References.Count: 0;
+            currentData.ObjectTypeCodes.Add(he.ClassPointer);
+            totalMemory += (ulong)he.ObjectSize;
+            if (ob.Size != 0)
+                currentData.RealObjectCount++;
+
+            // Read referenceCodes
+
+            long lastOff = 0;
+            for (int n = 0; n < ob.RefsCount; n++) {
+                var reference = he.References[n];
+                currentData.ReferenceCodes.Add(reference.ObjectPointer);
+                lastOff += reference.Offset;
+                currentData.FieldReferenceCodes.Add((ulong)lastOff);
+            }
+            currentData.ObjectsList.Add(ob);
+			UpdatePosition ();
+        }
+
+        void ReadHeapRootEvent (HeapRootsEvent he)
 		{
-			if (he.Type == HeapEvent.EventType.Start) {
-				//Console.WriteLine ("ppe: START");
-				return;
-			}
-			else if (he.Type == HeapEvent.EventType.End) {
-				//Console.WriteLine ("ppe: END");
-				HeapSnapshot shot = new HeapSnapshot ();
-				shotCount++;
-				shot.Build (shotCount.ToString (), currentData);
-				AddShot (shot);
-			}
-			if (he.Type == HeapEvent.EventType.Object) {
+            for (int n=0; n<he.Roots.Count; n++) {
+                var root = he.Roots[n];
 				ObjectInfo ob = new ObjectInfo ();
-				ob.Code = currentObjBase + he.Object;
-				ob.Size = he.Size;
+				ob.Size = 0;
 				ob.RefsIndex = currentData.ReferenceCodes.Count;
-				ob.RefsCount = he.ObjectRefs != null ? he.ObjectRefs.Length : 0;
-				currentData.ObjectTypeCodes.Add (currentPtrBase + he.Class);
-				totalMemory += ob.Size;
-				if (ob.Size != 0)
-					currentData.RealObjectCount++;
-				
-				// Read referenceCodes
-				
-				ulong lastOff = 0;
-				for (int n=0; n < ob.RefsCount; n++) {
-					currentData.ReferenceCodes.Add (he.ObjectRefs [n] + currentObjBase);
-					lastOff += he.RelOffset [n];
-					currentData.FieldReferenceCodes.Add (lastOff);
-				}
+				ob.RefsCount = 1;
+				long type = UnknownTypeId;
+                switch (root.Attributes & LogHeapRootAttributes.TypeMask) {
+                    case LogHeapRootAttributes.Stack: type = StackObjectId; ob.Code = StackObjectId; break;
+                    case LogHeapRootAttributes.Finalizer: type = FinalizerObjectId; ob.Code = --rootId; break;
+                    case LogHeapRootAttributes.Handle: type = HandleObjectId; ob.Code = --rootId; break;
+                    case LogHeapRootAttributes.Other: type = OtherRootObjectId; ob.Code = --rootId; break;
+                    case LogHeapRootAttributes.Miscellaneous: type = MiscRootObjectId; ob.Code = --rootId; break;
+                }
+				currentData.ObjectTypeCodes.Add (type);
+				currentData.ReferenceCodes.Add (root.ObjectPointer);
+				currentData.FieldReferenceCodes.Add (0);
 				currentData.ObjectsList.Add (ob);
-			}
-			else if (he.Type == HeapEvent.EventType.Root) {
-				for (int n=0; n<he.RootRefs.Length; n++) {
-					ObjectInfo ob = new ObjectInfo ();
-					ob.Size = 0;
-					ob.RefsIndex = currentData.ReferenceCodes.Count;
-					ob.RefsCount = 1;
-					long type = UnknownTypeId;
-					switch (he.RootRefTypes [n] & HeapEvent.RootType.TypeMask) {
-					case HeapEvent.RootType.Stack: type = StackObjectId; ob.Code = StackObjectId; break;
-					case HeapEvent.RootType.Finalizer: type = FinalizerObjectId; ob.Code = --rootId; break;
-					case HeapEvent.RootType.Handle: type = HandleObjectId; ob.Code = --rootId; break;
-					case HeapEvent.RootType.Other: type = OtherRootObjectId; ob.Code = --rootId; break;
-					case HeapEvent.RootType.Misc: type = MiscRootObjectId; ob.Code = --rootId; break;
-					default:
-						Console.WriteLine ("pp1:"); break;
-					}
-					currentData.ObjectTypeCodes.Add (type);
-					currentData.ReferenceCodes.Add (he.RootRefs [n] + currentObjBase);
-					currentData.FieldReferenceCodes.Add (0);
-					currentData.ObjectsList.Add (ob);
-					currentData.RealObjectCount++;
-				}
+				currentData.RealObjectCount++;
 			}
 		}
 		
@@ -314,6 +295,56 @@ namespace HeapShot.Reader {
 			if (HeapSnapshotAdded != null)
 				HeapSnapshotAdded (this, new HeapShotEventArgs (shot));
 		}
+
+        class HeapShotLogEventVisitor: LogEventVisitor
+        {
+            public ObjectMapReader Parent { get; set; }
+
+            public override void Visit(ClassLoadEvent ev)
+            {
+                Parent.ReadClassEvent(ev);
+            }
+
+            public override void Visit(HeapEndEvent ev)
+            {
+                Parent.ReadHeapEndEvent();
+            }
+
+            public override void Visit(HeapBeginEvent ev)
+            {
+                Parent.ReadHeapStartEvent();
+            }
+
+            public override void Visit(HeapRootsEvent ev)
+            {
+                Parent.ReadHeapRootEvent(ev);
+            }
+
+            public override void Visit(HeapObjectEvent ev)
+            {
+                Parent.ReadHeapObjectEvent(ev);
+            }
+
+            public override void Visit(GCEvent ev)
+            {
+                Parent.ReadGcEvent(ev);
+            }
+        }
+
+		class NullLogEventVisitor: LogEventVisitor
+		{
+			
+		}
+
+		class HeadReaderLogEventVisitor : LogEventVisitor
+		{
+			public CancellationTokenSource TokenSource = new CancellationTokenSource ();
+
+            public override void VisitBefore(LogEvent ev)
+            {
+				TokenSource.Cancel ();
+            }
+        }
 	}
 	
 	internal class HeapShotData

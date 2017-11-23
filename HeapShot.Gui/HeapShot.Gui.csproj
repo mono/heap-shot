@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>HeapShot.Gui</RootNamespace>
     <AssemblyName>HeapShot.Gui</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -80,6 +80,7 @@
     <Reference Include="Mono.Posix" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="Mono.Profiler.Log" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HeapShot.Gui.Widgets\HeapShot.Gui.Widgets.csproj">

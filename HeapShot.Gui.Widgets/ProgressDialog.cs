@@ -24,6 +24,7 @@
 using System;
 using Gtk;
 using HeapShot.Reader;
+using System.Threading;
 
 namespace HeapShot.Gui.Widgets
 {
@@ -34,6 +35,7 @@ namespace HeapShot.Gui.Widgets
 		bool cancelled;
 		int lastp = -1;
 		bool threaded;
+		CancellationTokenSource cancellationTokenSource = new CancellationTokenSource ();
 		
 		public ProgressDialog (Gtk.Window parent, bool threaded)
 		{
@@ -67,14 +69,16 @@ namespace HeapShot.Gui.Widgets
 				Console.WriteLine ("Exception while showing progress: {0}", ex.Message);
 			}
 		}
-		
-		public bool Cancelled {
-			get { return cancelled; } 
+
+		public CancellationToken CancellationToken {
+			get {
+				return cancellationTokenSource.Token;
+			}
 		}
 
 		protected virtual void OnButtonCancelClicked (object sender, System.EventArgs e)
 		{
-			cancelled = true;
+			cancellationTokenSource.Cancel ();
 			buttonCancel.Sensitive = false;
 		}
 	}
