@@ -155,7 +155,7 @@ namespace HeapShot.Reader
 			long[] mergedObjectCodes = new long [data.RealObjectCount];
 			ObjectInfo[] mergedObjects = new ObjectInfo [data.RealObjectCount];
 			long[] mergedReferenceCodes = new long [data.ReferenceCodes.Count];
-			ulong[] mergedFieldReferenceCodes = new ulong [data.FieldReferenceCodes.Count];
+			int[] mergedFieldReferenceCodes = new int [data.FieldReferenceCodes.Count];
 			long last = long.MinValue;
 			int mergedObjectPos = -1;
 			int mergedRefPos = 0;
@@ -247,7 +247,7 @@ namespace HeapShot.Reader
 						invPositions [i]++;
 					}
 					// If the reference is bound to a field, locate the field
-					ulong fr = mergedFieldReferenceCodes [sr];
+					int fr = mergedFieldReferenceCodes [sr];
 					if (fr != 0) {
 						for (int k=fi; k<nf; k++) {
 							if (data.FieldCodes [k] == fr) {

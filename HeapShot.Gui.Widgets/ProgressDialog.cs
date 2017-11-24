@@ -28,11 +28,8 @@ using System.Threading;
 
 namespace HeapShot.Gui.Widgets
 {
-	
-	
 	public partial class ProgressDialog : Gtk.Dialog, IProgressListener
 	{
-		bool cancelled;
 		int lastp = -1;
 		bool threaded;
 		CancellationTokenSource cancellationTokenSource = new CancellationTokenSource ();

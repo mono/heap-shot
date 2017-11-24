@@ -27,6 +27,7 @@ using System.IO;
 using System.Net.Sockets;
 using Mono.Profiler.Log;
 using System.Threading;
+using Mono.Cecil;
 
 namespace HeapShot.Reader
 {
@@ -56,6 +57,8 @@ namespace HeapShot.Reader
 		HeapShotData currentData;
 		List<HeapSnapshot> shots = new List<HeapSnapshot> ();
         IProgressListener progress;
+
+		Dictionary<long, AssemblyDefinition> images = new Dictionary<long, AssemblyDefinition> ();
 		
 		public event EventHandler<HeapShotEventArgs> HeapSnapshotAdded;
 		
@@ -66,6 +69,7 @@ namespace HeapShot.Reader
 		public ObjectMapReader (string filename)
 		{
 			this.name = filename;
+			Console.WriteLine ("FILE: " + filename);
 			
 			currentData = new HeapShotData ();
 			
@@ -207,15 +211,21 @@ namespace HeapShot.Reader
 			ti.Code = t.ClassPointer;
 			ti.Name = t.Name;
 			ti.FieldsIndex = currentData.FieldCodes.Count;
-			
-			int nf = 0;
-/*			uint fcode;
-			while ((fcode = reader.ReadUInt32 ()) != 0) {
-				fieldCodes.Add (fcode);
-				fieldNamesList.Add (reader.ReadString ());
-				nf++;
-			}*/
-			ti.FieldsCount = nf;
+
+			if (images.TryGetValue (t.ImagePointer, out var assembly)) {
+				var type = assembly.MainModule.GetType (ti.Name);
+				if (type != null) {
+					foreach (var f in type.Fields) {
+						var ty = f.FieldType.Resolve ();
+						if (ty != null) {
+							currentData.FieldCodes.Add (f.Offset);
+							currentData.FieldNamesList.Add (f.Name);
+						}
+					}
+					ti.FieldsCount = type.Fields.Count;
+				}
+			}
+				
 			currentData.TypesList.Add (ti);
 		}
 		
@@ -259,7 +269,7 @@ namespace HeapShot.Reader
                 var reference = he.References[n];
                 currentData.ReferenceCodes.Add(reference.ObjectPointer);
                 lastOff += reference.Offset;
-                currentData.FieldReferenceCodes.Add((ulong)lastOff);
+				currentData.FieldReferenceCodes.Add((int)lastOff);
             }
             currentData.ObjectsList.Add(ob);
 			UpdatePosition ();
@@ -288,7 +298,20 @@ namespace HeapShot.Reader
 				currentData.RealObjectCount++;
 			}
 		}
-		
+
+		void ReadImageLoadEvent (ImageLoadEvent ev)
+		{
+/*			if (File.Exists (ev.Name)) {
+				var asm = AssemblyDefinition.ReadAssembly (ev.Name);
+				images [ev.ImagePointer] = asm;
+			} else {
+				Console.WriteLine ("SKIP ASM: " + ev.Name);
+			}*/
+
+
+			Console.WriteLine ("dxzdzda");
+		}
+
 		void AddShot (HeapSnapshot shot)
 		{
 			shots.Add (shot);
@@ -302,6 +325,7 @@ namespace HeapShot.Reader
 
             public override void Visit(ClassLoadEvent ev)
             {
+				Console.WriteLine ("ClassLoadEvent: " + ev.Name + " cp:" + ev.ClassPointer + " ip:" + ev.ImagePointer);
                 Parent.ReadClassEvent(ev);
             }
 
@@ -329,6 +353,22 @@ namespace HeapShot.Reader
             {
                 Parent.ReadGcEvent(ev);
             }
+
+            public override void Visit(GCMoveEvent ev)
+            {
+				Console.WriteLine ("GCMoveEvent");
+            }
+
+            public override void Visit(AssemblyLoadEvent ev)
+            {
+				Console.WriteLine ("AssemblyLoadEvent: " + ev.Name + " ap:" + ev.AssemblyPointer + " ip:" + ev.ImagePointer);
+				base.Visit(ev);
+            }
+
+            public override void Visit(ImageLoadEvent ev)
+            {
+				Parent.ReadImageLoadEvent (ev);
+            }
         }
 
 		class NullLogEventVisitor: LogEventVisitor
@@ -355,8 +395,8 @@ namespace HeapShot.Reader
 			TypesList = new List<TypeInfo> ();
 			ObjectTypeCodes = new List<long> ();
 			ReferenceCodes = new List<long> ();
-			FieldReferenceCodes = new List<ulong> ();
-			FieldCodes = new List<uint> ();
+			FieldReferenceCodes = new List<int> ();
+			FieldCodes = new List<int> ();
 			FieldNamesList = new List<string> ();
 		}
 		
@@ -384,7 +424,7 @@ namespace HeapShot.Reader
 		public List<string> FieldNamesList;
 		public List<long> ReferenceCodes;
 		public List<long> ObjectTypeCodes;
-		public List<uint> FieldCodes;
-		public List<ulong> FieldReferenceCodes;
+		public List<int> FieldCodes;
+		public List<int> FieldReferenceCodes;
 	}
 }
