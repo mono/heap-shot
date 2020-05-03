@@ -167,8 +167,18 @@ namespace HeapShot.Reader
 			}
 			return result;
 		}
-		
-		public string ReadNullTerminatedString ()
+
+        public string ReadVarString()
+        {
+            LoadData(4);
+            var len = ReadInt32();
+            LoadData(len);
+            int start = position;
+            position += len;
+            return System.Text.Encoding.UTF8.GetString(buffer, start, len);
+        }
+
+        public string ReadNullTerminatedString ()
 		{
 			int start = position;
 			
